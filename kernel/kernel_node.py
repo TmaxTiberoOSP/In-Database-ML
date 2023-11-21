@@ -176,8 +176,8 @@ class KernelNode(object):
             self._ioloop.stop()
 
     def _on_connect(self, *args, **kwargs) -> None:
-        self.on_connect(*args, **kwargs)
         self.send(NodeMessage.GREETING_REPLY, id=args[0])
+        self.on_connect(*args, **kwargs)
 
     @abstractmethod
     def on_connect(self, *_, **__) -> Any:

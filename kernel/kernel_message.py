@@ -23,6 +23,9 @@ class NodeMessage(Enum):
     GREETING = auto()
     GREETING_REPLY = auto()
 
+    # Master <-> Provider
+    SETUP_PROVIDER = auto()
+
     def type(self, value: int) -> bool:
         return self.value == value
 
@@ -32,3 +35,15 @@ class NodeMessage(Enum):
     def unpack(value) -> (int, Self):
         value = struct.unpack("<H", value)[0]
         return value, NodeMessage(value)
+
+
+class KernelMessageAuto(Enum):
+    def _generate_next_value_(name, *_):
+        return NodeMessage[name].value
+
+    def pack(self):
+        return struct.pack("<H", self.value)
+
+
+class MasterMessage(KernelMessageAuto):
+    SETUP_PROVIDER = auto()

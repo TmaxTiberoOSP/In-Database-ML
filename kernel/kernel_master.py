@@ -4,7 +4,7 @@
 
 from typing import Dict, Set
 
-from kernel.kernel_message import NodeType
+from kernel.kernel_message import MasterMessage, NodeType
 from kernel.kernel_node import KernelNode
 
 
@@ -23,6 +23,7 @@ class KernelMaster(KernelNode):
     def on_connect(self, id, type) -> None:
         if NodeType.Provider.type(type):
             self.providers.add(id)
+            self.send(MasterMessage.SETUP_PROVIDER, json_body=self.settings, id=id)
             print(f"providers: {self.providers}")  # XXX: logger
         elif NodeType.Client.type(type):
             self.clients.add(id)
