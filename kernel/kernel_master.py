@@ -13,6 +13,7 @@ class KernelMaster(KernelNode):
         "limit": 0,
     }
     providers: Set[bytes] = set()
+    clients: Set[bytes] = set()
 
     def __init__(self, port: int, root_path: str, limit: int) -> None:
         super().__init__(NodeType.Master, port=port, root_path=root_path)
@@ -22,6 +23,22 @@ class KernelMaster(KernelNode):
     def on_connect(self, id, type) -> None:
         if NodeType.Provider.type(type):
             self.providers.add(id)
+            print(f"providers: {self.providers}")  # XXX: logger
+        elif NodeType.Client.type(type):
+            self.clients.add(id)
+            print(f"clients: {self.clients}")  # XXX: logger
+        else:
+            pass  # XXX: logger
+
+    def on_disconnect(self, id, _) -> None:
+        if id in self.providers:
+            self.providers.remove(id)
+            print(f"providers: {self.providers}")  # XXX: logger
+        elif id in self.clients:
+            self.clients.remove(id)
+            print(f"clients: {self.clients}")  # XXX: logger
+        else:
+            pass  # XXX: logger
 
 
 if __name__ == "__main__":

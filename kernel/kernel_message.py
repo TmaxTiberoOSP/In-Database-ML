@@ -11,6 +11,7 @@ from typing_extensions import Self
 class NodeType(Enum):
     Master = "master"
     Provider = "provider"
+    Client = "client"
 
     def type(self, value: str) -> bool:
         return self.value == value

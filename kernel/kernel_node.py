@@ -73,6 +73,7 @@ class KernelNode(object):
         self._stream = ZMQStream(socket, io_loop=self._ioloop)
         self._stream.on_recv(self._on_recv)
 
+        self.listen(NodeMessage.DISCONNECT, self._on_disconnect)
         self.listen(NodeMessage.GREETING, self._on_connect)
 
     def listen(self, type: NodeMessage, handler: Callable) -> None:
