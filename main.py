@@ -2,18 +2,25 @@
 # -*- coding: utf-8 -*-
 # main.py
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-from app.config import settings
+from app.config import database, settings
 
 settings = settings.get()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    database.init()
+    yield
 
 app = FastAPI(
     title=settings.app_name,
     description="Python Server for In-Database Machine Learning",
     version="0.0.1",
+    lifespan=lifespan,
 )
-
 
 if __name__ == "__main__":
     import argparse
