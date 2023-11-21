@@ -3,7 +3,7 @@
 # kernel/kernel_provider.py
 
 from kernel.kernel_message import MasterMessage, NodeType
-from kernel.kernel_node import KernelNode
+from kernel.kernel_node import Flow, KernelNode
 
 
 class KernelProvider(KernelNode):
@@ -14,11 +14,15 @@ class KernelProvider(KernelNode):
         self.connect(master_address, to_master=True)
 
         # Master Events
-        self.listen(MasterMessage.SETUP_PROVIDER, self._on_setup)
+        self.listen(MasterMessage.SETUP_PROVIDER, self.on_master_setup)
+        self.listen(MasterMessage.SPWAN_KERNEL, self.on_master_spwan_kernel)
 
     # Master Events
-    def _on_setup(self, _, settings) -> None:
+    def on_master_setup(self, _, settings, **__) -> None:
         self.limit = settings["limit"]
+
+    def on_master_spwan_kernel(self, *_, flow: Flow, **__) -> None:
+        pass
 
 
 if __name__ == "__main__":

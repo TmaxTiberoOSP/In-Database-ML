@@ -25,6 +25,10 @@ class NodeMessage(Enum):
 
     # Master <-> Provider
     SETUP_PROVIDER = auto()
+    SPWAN_KERNEL = auto()
+
+    # Client <-> Master
+    REQ_KERNEL = auto()
 
     def type(self, value: int) -> bool:
         return self.value == value
@@ -47,3 +51,8 @@ class KernelMessageAuto(Enum):
 
 class MasterMessage(KernelMessageAuto):
     SETUP_PROVIDER = auto()
+    SPWAN_KERNEL = auto()
+
+
+class ClientMessage(KernelMessageAuto):
+    REQ_KERNEL = auto()

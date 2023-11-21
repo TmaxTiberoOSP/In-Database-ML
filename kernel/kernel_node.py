@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 # kernel/kernel_node.py
 
+import asyncio
 import errno
 import logging
 import os
 import signal
 from abc import abstractmethod
+from asyncio import Future
 from time import time
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple
 from uuid import uuid4
 
 from tornado.ioloop import IOLoop
@@ -28,6 +30,27 @@ class KernelNodeFilter(logging.Filter):
         return not record.getMessage().endswith("Host unreachable")
 
 
+class Flow(object):
+    id: bytes  # uuid
+    args: Tuple
+    kwargs: Dict[str, Any]
+    future: Future | None = None
+    callback: Callable | None = None
+    prev_id: bytes | None = None  # uuid
+
+    def __init__(self, id: str, *args, **kwargs) -> None:
+        self.id = id.encode()
+        self.args = args
+        if "future" in kwargs:
+            kwargs.pop("future")
+            self.future = asyncio.get_running_loop().create_future()
+        if "prev_id" in kwargs:
+            self.prev_id = kwargs.pop("prev_id")
+        if "callback" in kwargs:
+            self.callback = kwargs.pop("callback")
+        self.kwarg = kwargs
+
+
 class KernelNode(object):
     is_active: bool = False
     type: NodeType
@@ -39,6 +62,7 @@ class KernelNode(object):
     _stream: ZMQStream
     _handles: Dict[int, Callable] = {}
     _connected: Dict[bytes, time] = {}
+    _flows: Dict[bytes, Flow] = {}
 
     def __init__(
         self,
@@ -83,10 +107,17 @@ class KernelNode(object):
             self._handles[type.value] = handler
 
     def _on_recv(self, raw: list[bytes]) -> None:
-        id, rtype, *rbody = raw
+        id, rtype, flow_id, *rbody = raw
 
         self._connected[id] = time()
         key, _ = NodeMessage.unpack(rtype)
+
+        flow = None
+        if flow_id:
+            if flow_id in self._flows:
+                flow = self._flows[flow_id]
+            else:
+                flow = self.new_flow(prev_id=flow_id)
 
         body = None
         if rbody:
@@ -94,7 +125,7 @@ class KernelNode(object):
 
         print("  >", raw)  # XXX: logger
         if key in self._handles:
-            self._handles[key](id, body)
+            self._handles[key](id, body, flow=flow)
 
     def connect(
         self,
@@ -118,13 +149,15 @@ class KernelNode(object):
         type: NodeMessage,
         body: Any = None,
         json_body: Any = None,
+        flow: Flow | None = None,
         to_master: bool = False,
         id: bytes | None = None,
     ) -> None:
-        # | identity | message_type | body_type | body |
+        # | identity | message_type | flow_id | body_type | body |
         payload = []
         payload.append(MASTER_IDENTITY if to_master else id)
         payload.append(type.pack())  # message_type
+        payload.append(flow.id if flow else b"")  # flow_id
 
         if body and json_body:
             raise  # XXX: custom error
@@ -190,3 +223,19 @@ class KernelNode(object):
     @abstractmethod
     def on_disconnect(self, *_, **__) -> Any:
         pass
+
+    def _gen_unique_id(self, ids: list):
+        id = str(uuid4())
+        while id in ids:
+            id = str(uuid4())
+        return id
+
+    # Flow
+    def new_flow(self, *args, **kwargs) -> Flow:
+        flow = Flow(self._gen_unique_id(self._flows), *args, **kwargs)
+        self._flows[flow.id] = flow
+        return flow
+
+    def del_flow(self, id: bytes) -> None:
+        if id in self._flows:
+            del self._flows[id]

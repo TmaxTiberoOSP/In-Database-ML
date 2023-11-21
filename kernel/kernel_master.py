@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 # kernel/kernel_master.py
 
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 
-from kernel.kernel_message import MasterMessage, NodeType
-from kernel.kernel_node import KernelNode
+from kernel.kernel_message import ClientMessage, MasterMessage, NodeType
+from kernel.kernel_node import Flow, KernelNode
 
 
 class KernelMaster(KernelNode):
@@ -20,7 +20,10 @@ class KernelMaster(KernelNode):
 
         self.settings["limit"] = limit
 
-    def on_connect(self, id, type) -> None:
+        # Client Events
+        self.listen(ClientMessage.REQ_KERNEL, self.on_request_kernel)
+
+    def on_connect(self, id, type, **_) -> None:
         if NodeType.Provider.type(type):
             self.providers.add(id)
             self.send(MasterMessage.SETUP_PROVIDER, json_body=self.settings, id=id)
@@ -31,7 +34,7 @@ class KernelMaster(KernelNode):
         else:
             pass  # XXX: logger
 
-    def on_disconnect(self, id, _) -> None:
+    def on_disconnect(self, id, _, **__) -> None:
         if id in self.providers:
             self.providers.remove(id)
             print(f"providers: {self.providers}")  # XXX: logger
@@ -40,6 +43,18 @@ class KernelMaster(KernelNode):
             print(f"clients: {self.clients}")  # XXX: logger
         else:
             pass  # XXX: logger
+
+    # Client Events
+    def on_request_kernel(self, client_id, _, flow: Flow, **__) -> None:
+        if self.providers:
+            flow.args = client_id
+            self.send(
+                MasterMessage.SPWAN_KERNEL,
+                id=self.providers.pop(),
+                flow=flow,
+            )
+        else:
+            pass  # XXX: 준비된 프로바이더 없는 경우 에러 메시지 전송
 
 
 if __name__ == "__main__":
