@@ -6,6 +6,7 @@ import asyncio
 import os
 import signal
 from multiprocessing import Process
+from typing import Callable
 
 from ipykernel.kernelapp import IPKernelApp
 from setproctitle import setproctitle
@@ -16,20 +17,35 @@ from kernel.kernel_node import Flow, KernelNode
 
 class KernelProcessServer(KernelNode):
     _provider_id: bytes
+    _connection_id: bytes | None
+    _process: Process
 
     def __init__(
         self,
         provider_address: str,
         provider_id: bytes,
         root_path: str,
+        process: Process,
     ) -> None:
         super().__init__(NodeType.Kernel, root_path=root_path)
         self.connect(provider_address, to_master=True)
 
         self._provider_id = provider_id
+        self._connection_id = None
+        self._process = process
 
     def send_to_provider(self, *args, **kwargs) -> None:
         self.send(*args, id=self._provider_id, **kwargs)
+
+    def on_connect(self, id, type, **_) -> None:
+        if NodeType.Connection.type(type):
+            self._connection_id = id
+        else:
+            pass  # XXX: logger
+
+    def on_disconnect(self, id, _, **__) -> None:
+        if id == self._connection_id:
+            self._process.stop()
 
 
 class KernelProcess(Process):
@@ -68,6 +84,7 @@ class KernelProcess(Process):
             f"tcp://127.0.0.1:{self._provider_port}",
             self._provider_id,
             f"{self._provider_path}/{self.kernel_id}",
+            self,
         )
 
         IPKernelApp.no_stdout = True

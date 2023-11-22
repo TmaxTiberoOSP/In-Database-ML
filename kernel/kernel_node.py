@@ -219,7 +219,7 @@ class KernelNode(object):
     async def stop(self, io_stop: bool = True) -> None:
         self.is_active = False
 
-        self.on_stop()
+        await self.on_stop()
         for id in self._connected:
             self.send(NodeMessage.DISCONNECT, id=id)
 
@@ -230,7 +230,7 @@ class KernelNode(object):
             self._ioloop.stop()
 
     @abstractmethod
-    def on_stop(self, *_, **__) -> Any:
+    async def on_stop(self) -> Any:
         pass
 
     def _on_connect(self, *args, **kwargs) -> None:

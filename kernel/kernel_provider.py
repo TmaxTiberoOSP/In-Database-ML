@@ -63,7 +63,7 @@ class KernelProvider(KernelNode):
             to_master=True,
         )
 
-    def on_stop(self):
+    async def on_stop(self):
         for kernel in self.kernels.values():
             kernel.stop()
 

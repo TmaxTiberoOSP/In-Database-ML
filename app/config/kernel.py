@@ -113,7 +113,7 @@ class KernelConnection(KernelNode):
         except:
             pass
 
-    def stop(self):
+    async def stop(self):
         if not self.alive:
             return
 
@@ -122,6 +122,8 @@ class KernelConnection(KernelNode):
 
         for stream in self._channels.values():
             stream.close()
+
+        await super().stop(io_stop=False)
 
     def on_recv_session(self, _, msg_list) -> None:
         _, msg_list = self._session.feed_identities(msg_list)
@@ -201,6 +203,10 @@ class KernelClient(KernelNode):
         self.send(ClientMessage.REQ_KERNEL, flow=flow, to_master=True)
 
         return await flow.future
+
+    async def on_stop(self) -> Any:
+        for kernel in self.kernels.values():
+            await kernel.stop()
 
     def get(self, id: str) -> KernelConnection:
         return self.kernels[id]
