@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # kernel/kernel_master.py
 
-from typing import Dict, Optional, Set
+from typing import Dict, Set
 
 from kernel.kernel_message import (
     ClientMessage,
@@ -58,13 +58,22 @@ class KernelMaster(KernelNode):
     def on_provider_spwan_kernel_reply(
         self, provider_id, connection, flow=Flow, **_
     ) -> None:
-        pass
+        flow.set_cleanup()
+        client_id = flow.args
+
+        self.send(
+            MasterMessage.RES_KERNEL,
+            id=client_id,
+            json_body=connection,
+            flow=flow,
+        )
+
+        self.providers.add(provider_id)
 
     # Client Events
     def on_client_request_kernel(self, client_id, _, flow: Flow, **__) -> None:
         if self.providers:
             flow.args = client_id
-            print(flow)
             self.send(
                 MasterMessage.SPWAN_KERNEL,
                 id=self.providers.pop(),

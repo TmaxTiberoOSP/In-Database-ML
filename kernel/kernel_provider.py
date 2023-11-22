@@ -51,6 +51,8 @@ class KernelProvider(KernelNode):
 
     # Kernel Events
     def on_kernel_ready(self, id, connection, flow=Flow, **_) -> None:
+        flow.set_cleanup()
+
         kernel = self.kernels[connection["kernel_id"]]
         kernel.id = id
 

@@ -31,24 +31,35 @@ class KernelNodeFilter(logging.Filter):
 
 
 class Flow(object):
-    id: bytes  # uuid
+    id: bytes  # {identity}/{seq}
     args: Tuple
     kwargs: Dict[str, Any]
     future: Future | None = None
     callback: Callable | None = None
     prev_id: bytes | None = None  # uuid
 
-    def __init__(self, id: str, *args, **kwargs) -> None:
-        self.id = id.encode()
+    _seq: int = 0
+    _flag_cleanup: bool
+
+    def __init__(self, id: bytes, *args, **kwargs) -> None:
+        if "prev_id" in kwargs:
+            self.id = kwargs.pop("prev_id")
+        else:
+            self.id = f"{id.decode()}/{Flow._seq}".encode()
+            Flow._seq += 1
+
         self.args = args
         if "future" in kwargs:
             kwargs.pop("future")
             self.future = asyncio.get_running_loop().create_future()
-        if "prev_id" in kwargs:
-            self.prev_id = kwargs.pop("prev_id")
         if "callback" in kwargs:
             self.callback = kwargs.pop("callback")
         self.kwarg = kwargs
+
+        self._flag_cleanup = False
+
+    def set_cleanup(self) -> None:
+        self._flag_cleanup = True
 
 
 class KernelNode(object):
@@ -175,6 +186,9 @@ class KernelNode(object):
         print("<D ", payload)  # XXX: logger
         self._stream.send_multipart(payload)
 
+        if flow and flow._flag_cleanup:
+            del self._flows[flow.id]
+
     def run(self) -> None:
         def signal_handler(*_):
             self._ioloop.add_callback_from_signal(self.stop)
@@ -241,7 +255,7 @@ class KernelNode(object):
 
     # Flow
     def new_flow(self, *args, **kwargs) -> Flow:
-        flow = Flow(self._gen_unique_id(self._flows), *args, **kwargs)
+        flow = Flow(self._identity, *args, **kwargs)
         self._flows[flow.id] = flow
         return flow
 
