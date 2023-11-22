@@ -80,7 +80,7 @@ class KernelNode(object):
         type: NodeType,
         port: int | None = None,
         root_path: str = f"{os.path.expanduser('~')}/.kernel_node",
-    ) -> None:
+    ) -> ZMQContext:
         context = ZMQContext()
         socket = context.socket(ROUTER)
         socket.setsockopt(ROUTER_MANDATORY, 1)
@@ -114,6 +114,8 @@ class KernelNode(object):
 
         self._connected = {}
         self._flows = {}
+
+        return context
 
     def listen(self, type: NodeMessage, handler: Callable) -> None:
         if type.value in self._handles:
@@ -259,6 +261,6 @@ class KernelNode(object):
         self._flows[flow.id] = flow
         return flow
 
-    def del_flow(self, id: bytes) -> None:
-        if id in self._flows:
-            del self._flows[id]
+    def del_flow(self, flow: Flow) -> None:
+        if flow.id in self._flows:
+            del self._flows[flow.id]

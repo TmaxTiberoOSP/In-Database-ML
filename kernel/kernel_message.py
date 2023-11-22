@@ -13,6 +13,7 @@ class NodeType(Enum):
     Provider = "provider"
     Kernel = "kernel"
     Client = "client"
+    Connection = "connection"
 
     def type(self, value: str) -> bool:
         return self.value == value

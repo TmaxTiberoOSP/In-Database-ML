@@ -110,7 +110,7 @@ class KernelProcess(Process):
         app.start()
 
     def stop(self) -> None:
-        print(f"stop {self.kernel_id}")
+        print(f"stop {self.kernel_id}")  # XXX: logger
         if self.is_alive():
             try:
                 os.kill(self.pid, signal.SIGTERM)
