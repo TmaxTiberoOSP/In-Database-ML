@@ -11,6 +11,7 @@ from typing_extensions import Self
 class NodeType(Enum):
     Master = "master"
     Provider = "provider"
+    Kernel = "kernel"
     Client = "client"
 
     def type(self, value: str) -> bool:
@@ -26,9 +27,14 @@ class NodeMessage(Enum):
     # Master <-> Provider
     SETUP_PROVIDER = auto()
     SPWAN_KERNEL = auto()
+    SPWAN_KERNEL_REPLY = auto()
 
     # Client <-> Master
     REQ_KERNEL = auto()
+    RES_KERNEL = auto()
+
+    # Provider <-> Kernel
+    READY_KERNEL = auto()
 
     def type(self, value: int) -> bool:
         return self.value == value
@@ -52,7 +58,16 @@ class KernelMessageAuto(Enum):
 class MasterMessage(KernelMessageAuto):
     SETUP_PROVIDER = auto()
     SPWAN_KERNEL = auto()
+    RES_KERNEL = auto()
 
 
 class ClientMessage(KernelMessageAuto):
     REQ_KERNEL = auto()
+
+
+class ProviderMessage(KernelMessageAuto):
+    SPWAN_KERNEL_REPLY = auto()
+
+
+class KernelMessage(KernelMessageAuto):
+    READY_KERNEL = auto()

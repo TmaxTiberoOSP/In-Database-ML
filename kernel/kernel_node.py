@@ -54,15 +54,15 @@ class Flow(object):
 class KernelNode(object):
     is_active: bool = False
     type: NodeType
-    port: int
     root_path: str
 
+    _port: int
     _ioloop: IOLoop
     _identity: bytes
     _stream: ZMQStream
-    _handles: Dict[int, Callable] = {}
-    _connected: Dict[bytes, time] = {}
-    _flows: Dict[bytes, Flow] = {}
+    _handles: Dict[int, Callable]
+    _connected: Dict[bytes, time]
+    _flows: Dict[bytes, Flow]
 
     def __init__(
         self,
@@ -84,21 +84,25 @@ class KernelNode(object):
             socket.setsockopt_string(IDENTITY, f"{type.value} {uuid4()}")
 
         if port:
-            self.port = port
+            self._port = port
             socket.bind(f"tcp://*:{port}")
         else:
-            self.port = socket.bind_to_random_port("tcp://*")
+            self._port = socket.bind_to_random_port("tcp://*")
 
         os.makedirs(root_path, exist_ok=True)
-        self._root_path = root_path
+        self.root_path = root_path
 
         self._ioloop = IOLoop.current()
         self._identity = socket.getsockopt_string(IDENTITY).encode()
         self._stream = ZMQStream(socket, io_loop=self._ioloop)
         self._stream.on_recv(self._on_recv)
 
+        self._handles = {}
         self.listen(NodeMessage.DISCONNECT, self._on_disconnect)
         self.listen(NodeMessage.GREETING, self._on_connect)
+
+        self._connected = {}
+        self._flows = {}
 
     def listen(self, type: NodeMessage, handler: Callable) -> None:
         if type.value in self._handles:
@@ -199,6 +203,7 @@ class KernelNode(object):
     async def stop(self, io_stop: bool = True) -> None:
         self.is_active = False
 
+        self.on_stop()
         for id in self._connected:
             self.send(NodeMessage.DISCONNECT, id=id)
 
@@ -207,6 +212,10 @@ class KernelNode(object):
 
         if io_stop:
             self._ioloop.stop()
+
+    @abstractmethod
+    def on_stop(self, *_, **__) -> Any:
+        pass
 
     def _on_connect(self, *args, **kwargs) -> None:
         self.send(NodeMessage.GREETING_REPLY, id=args[0])

@@ -4,7 +4,12 @@
 
 from typing import Dict, Optional, Set
 
-from kernel.kernel_message import ClientMessage, MasterMessage, NodeType
+from kernel.kernel_message import (
+    ClientMessage,
+    MasterMessage,
+    NodeType,
+    ProviderMessage,
+)
 from kernel.kernel_node import Flow, KernelNode
 
 
@@ -20,8 +25,13 @@ class KernelMaster(KernelNode):
 
         self.settings["limit"] = limit
 
+        # Provider Events
+        self.listen(
+            ProviderMessage.SPWAN_KERNEL_REPLY, self.on_provider_spwan_kernel_reply
+        )
+
         # Client Events
-        self.listen(ClientMessage.REQ_KERNEL, self.on_request_kernel)
+        self.listen(ClientMessage.REQ_KERNEL, self.on_client_request_kernel)
 
     def on_connect(self, id, type, **_) -> None:
         if NodeType.Provider.type(type):
@@ -44,10 +54,17 @@ class KernelMaster(KernelNode):
         else:
             pass  # XXX: logger
 
+    # Provider Events
+    def on_provider_spwan_kernel_reply(
+        self, provider_id, connection, flow=Flow, **_
+    ) -> None:
+        pass
+
     # Client Events
-    def on_request_kernel(self, client_id, _, flow: Flow, **__) -> None:
+    def on_client_request_kernel(self, client_id, _, flow: Flow, **__) -> None:
         if self.providers:
             flow.args = client_id
+            print(flow)
             self.send(
                 MasterMessage.SPWAN_KERNEL,
                 id=self.providers.pop(),
