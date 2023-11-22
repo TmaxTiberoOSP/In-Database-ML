@@ -6,13 +6,12 @@ import asyncio
 import os
 import signal
 from multiprocessing import Process
-from typing import Callable
 
 from ipykernel.kernelapp import IPKernelApp
 from setproctitle import setproctitle
 
-from kernel.kernel_message import KernelMessage, NodeType
-from kernel.kernel_node import Flow, KernelNode
+from kernel.kernel_message import KernelMessage, NodeMessage, NodeType
+from kernel.kernel_node import Flow, KernelNode, ServingFile
 
 
 class KernelProcessServer(KernelNode):
@@ -34,9 +33,6 @@ class KernelProcessServer(KernelNode):
         self._connection_id = None
         self._process = process
 
-    def send_to_provider(self, *args, **kwargs) -> None:
-        self.send(*args, id=self._provider_id, **kwargs)
-
     def on_connect(self, id, type, **_) -> None:
         if NodeType.Connection.type(type):
             self._connection_id = id
@@ -46,6 +42,23 @@ class KernelProcessServer(KernelNode):
     def on_disconnect(self, id, _, **__) -> None:
         if id == self._connection_id:
             self._process.stop()
+
+    def send_to_provider(self, *args, **kwargs) -> None:
+        self.send(*args, id=self._provider_id, **kwargs)
+
+    def send_to_connect(self, *args, **kwargs) -> None:
+        self.send(*args, id=self._connection_id, **kwargs)
+
+    async def send_file(self, source_path: str, remote_path: str) -> None:
+        flow = self.new_flow(future=True)
+        flow.args = ServingFile(source_path)
+
+        self.send_to_connect(
+            NodeMessage.REQ_FILE_SERVING,
+            json_body=remote_path,
+            flow=flow,
+        )
+        await flow.future
 
 
 class KernelProcess(Process):

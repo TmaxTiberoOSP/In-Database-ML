@@ -9,6 +9,7 @@ import os
 import signal
 from abc import abstractmethod
 from asyncio import Future
+from io import TextIOWrapper
 from time import time
 from typing import Any, Callable, Dict, Tuple
 from uuid import uuid4
@@ -62,6 +63,45 @@ class Flow(object):
         self._flag_cleanup = True
 
 
+class ServingFile(object):
+    file: TextIOWrapper
+    is_write: bool = False
+
+    def __init__(
+        self,
+        path: str,
+        is_write: bool = False,
+    ) -> None:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        self.file = open(path, "wb" if is_write else "rb")
+        self.is_write = is_write
+
+    def read(self, length: int = 1024 * 1024) -> int:
+        if self.is_write:
+            raise  # XXX
+
+        data = self.file.read(length)
+
+        if not data:
+            self.file.close()
+
+        return data
+
+    def wrtie(self, data: bytes) -> int:
+        if not self.is_write:
+            raise  # XXX
+
+        size = len(data)
+
+        if size:
+            self.file.write(data)
+        else:
+            self.file.close()
+
+        return size
+
+
 class KernelNode(object):
     is_active: bool = False
     type: NodeType
@@ -111,6 +151,10 @@ class KernelNode(object):
         self._handles = {}
         self.listen(NodeMessage.DISCONNECT, self._on_disconnect)
         self.listen(NodeMessage.GREETING, self._on_connect)
+        self.listen(NodeMessage.REQ_FILE_SERVING, self._on_req_file_serving)
+        self.listen(NodeMessage.RES_FILE_SERVING, self._on_res_file_serving)
+        self.listen(NodeMessage.STREAM_FILE, self._on_stream_file)
+        self.listen(NodeMessage.FETCH_FILE, self._on_fetch_file)
 
         self._connected = {}
         self._flows = {}
@@ -127,7 +171,7 @@ class KernelNode(object):
         id, rtype, flow_id, *rbody = raw
 
         self._connected[id] = time()
-        key, _ = NodeMessage.unpack(rtype)
+        key, type = NodeMessage.unpack(rtype)
 
         flow = None
         if flow_id:
@@ -140,7 +184,9 @@ class KernelNode(object):
         if rbody:
             body = jsonapi.loads(rbody[1]) if bool(rbody[0]) else rbody[1]
 
-        print("  >", raw)  # XXX: logger
+        if type is not NodeMessage.STREAM_FILE:
+            print("  >", raw)  # XXX: logger
+
         if key in self._handles:
             self._handles[key](id, body, flow=flow)
 
@@ -185,7 +231,9 @@ class KernelNode(object):
             payload.append(bytes(True))
             payload.append(jsonapi.dumps(json_body))
 
-        print("<D ", payload)  # XXX: logger
+        if type is not NodeMessage.STREAM_FILE:
+            print("<D ", payload)  # XXX: logger
+
         self._stream.send_multipart(payload)
 
         if flow and flow._flag_cleanup:
@@ -264,3 +312,33 @@ class KernelNode(object):
     def del_flow(self, flow: Flow) -> None:
         if flow.id in self._flows:
             del self._flows[flow.id]
+
+    # File
+    def _on_req_file_serving(self, id, target_path, flow: Flow):
+        flow.args = ServingFile(f"{self.root_path}/{target_path}", is_write=True)
+
+        self.send(NodeMessage.RES_FILE_SERVING, id=id, flow=flow)
+
+    def _on_res_file_serving(self, id, _, flow: Flow):
+        file: ServingFile = flow.args
+
+        self.send(NodeMessage.STREAM_FILE, id=id, body=file.read(), flow=flow)
+
+    def _on_stream_file(self, id, body, flow: Flow):
+        file: ServingFile = flow.args
+
+        if body:
+            file.wrtie(body)
+            self.send(NodeMessage.FETCH_FILE, id=id, flow=flow)
+        else:
+            self.del_flow(flow)
+
+    def _on_fetch_file(self, id, _, flow: Flow):
+        file: ServingFile = flow.args
+
+        body = file.read()
+        self.send(NodeMessage.STREAM_FILE, id=id, body=body, flow=flow)
+
+        if not body:
+            flow.future.set_result(True)
+            self.del_flow(flow)

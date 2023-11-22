@@ -25,6 +25,12 @@ class NodeMessage(Enum):
     GREETING = auto()
     GREETING_REPLY = auto()
 
+    # File
+    REQ_FILE_SERVING = auto()
+    RES_FILE_SERVING = auto()
+    STREAM_FILE = auto()
+    FETCH_FILE = auto()
+
     # Master <-> Provider
     SETUP_PROVIDER = auto()
     SPWAN_KERNEL = auto()
