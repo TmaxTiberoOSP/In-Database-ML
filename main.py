@@ -6,14 +6,19 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.config import database, settings
+import app.router as router
+from app.config import database, kernel, settings
 
 settings = settings.get()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
+    kernel.init(app)
     yield
+    await kernel.stop(app)
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -21,6 +26,8 @@ app = FastAPI(
     version="0.0.1",
     lifespan=lifespan,
 )
+
+app.include_router(router.kernel)
 
 if __name__ == "__main__":
     import argparse
