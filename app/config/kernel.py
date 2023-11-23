@@ -35,6 +35,7 @@ class KernelConnection(KernelNode):
     reply: Dict[str, List[str]]
     reply_futures: Dict[str, asyncio.Future]
 
+    _client: Any
     _process_key: bytes
     _session: Session
     _channels: Dict[str, ZMQStream]
@@ -42,11 +43,13 @@ class KernelConnection(KernelNode):
     _hb_start_handle: Any
     _hb_handle: ioloop.PeriodicCallback
 
-    def __init__(self, kernel_id, connection) -> None:
+    def __init__(self, client, kernel_id, connection) -> None:
         context = super().__init__(
             NodeType.Connection,
             root_path=f"{settings.kernel_root}/{kernel_id}",
         )
+
+        self._client = client
 
         self.id = kernel_id
         self.alive = False
@@ -123,6 +126,8 @@ class KernelConnection(KernelNode):
         for stream in self._channels.values():
             stream.close()
 
+        del self._client.kernels[self.id]
+
         await super().stop(io_stop=False)
 
     def on_recv_session(self, _, msg_list) -> None:
@@ -188,11 +193,11 @@ class KernelClient(KernelNode):
         # Master Events
         self.listen(MasterMessage.RES_KERNEL, self.on_res_kernel)
 
-    def on_res_kernel(self, _, connection, flow: Flow, **__) -> None:
+    def on_res_kernel(self, _, connection, flow: Flow) -> None:
         kernel = None
 
         if connection:
-            kernel = KernelConnection(**connection)
+            kernel = KernelConnection(self, **connection)
             kernel.run(io_stop=False)
             self.kernels[kernel.id] = kernel
 
@@ -212,6 +217,19 @@ class KernelClient(KernelNode):
 
     def get(self, id: str) -> KernelConnection:
         return self.kernels[id]
+
+    def get_kernels(self) -> list:
+        return [
+            {
+                "kid": kernel.id,
+                "executed": kernel.executed,
+                "executing": kernel.executing,
+                "status": kernel.status,
+                "alive": kernel.alive,
+                "reply": kernel.reply,
+            }
+            for kernel in self.kernels.values()
+        ]
 
 
 def init(app: FastAPI) -> None:

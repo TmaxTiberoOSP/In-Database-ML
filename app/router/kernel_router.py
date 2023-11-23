@@ -11,6 +11,11 @@ from app.config.kernel import KernelClient, get_client
 router = APIRouter(prefix="/kernels", tags=["Kernel"])
 
 
+@router.get("/")
+def get_kernel_list(kc: KernelClient = Depends(get_client)):
+    return kc.get_kernels()
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_kernel(kc: KernelClient = Depends(get_client)):
     kernel = await kc.create_kernel()
