@@ -211,7 +211,7 @@ class KernelClient(KernelNode):
         return await flow.future
 
     async def on_stop(self) -> Any:
-        for kernel in self.kernels.values():
+        for kernel in [*self.kernels.values()]:
             await kernel.stop()
 
     def get(self, id: str) -> KernelConnection:
