@@ -60,6 +60,7 @@ class KernelProcess(Process):
 
     kernel_id: str  # uuid4
     _provider_path: str
+    _provider_host: str
     _provider_port: int
     _provider_id: bytes
     _req_flow: Flow
@@ -68,6 +69,7 @@ class KernelProcess(Process):
         self,
         kernel_id: str,
         provider_path: str,
+        provider_host: str,
         provider_port: int,
         provider_id: bytes,
         flow: Flow,
@@ -76,8 +78,9 @@ class KernelProcess(Process):
 
         self.kernel_id = kernel_id
         self._provider_path = provider_path
-        self._provider_id = provider_id
+        self._provider_host = provider_host
         self._provider_port = provider_port
+        self._provider_id = provider_id
         self._req_flow = flow
 
     def run(self) -> None:
@@ -88,7 +91,7 @@ class KernelProcess(Process):
         setproctitle(f"python kernel {self.kernel_id}")
 
         server = KernelProcessServer(
-            f"tcp://127.0.0.1:{self._provider_port}",
+            f"tcp://{self._provider_host}:{self._provider_port}",
             self._provider_id,
             f"{self._provider_path}/{self.kernel_id}",
             self,
@@ -98,6 +101,7 @@ class KernelProcess(Process):
         IPKernelApp.no_stderr = True
 
         app = IPKernelApp.instance()
+        app.ip = self._provider_host
         app.user_ns = {
             "kernel_id": self.kernel_id,
             "_ROOT_PATH": server.root_path,

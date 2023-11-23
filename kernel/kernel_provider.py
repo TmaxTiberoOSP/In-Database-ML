@@ -16,12 +16,15 @@ from kernel.kernel_process import KernelProcess
 
 
 class KernelProvider(KernelNode):
+    host: str
     limit: int = 0
     kernels: Dict[str, KernelProcess] = {}
 
-    def __init__(self, master_address: str, root_path: str) -> None:
+    def __init__(self, master_address: str, host: str, root_path: str) -> None:
         super().__init__(NodeType.Provider, root_path=root_path)
         self.connect(master_address, to_master=True)
+
+        self.host = host
 
         # Master Events
         self.listen(MasterMessage.SETUP_PROVIDER, self.on_master_setup)
@@ -50,6 +53,7 @@ class KernelProvider(KernelNode):
             kernel = KernelProcess(
                 self._gen_unique_id(self.kernels),
                 self.root_path,
+                self.host,
                 self._port,
                 self._identity,
                 flow,
@@ -85,6 +89,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Launch a kernel provider")
     parser.add_argument("address", type=str, help="Address of the kernel master")
     parser.add_argument(
+        "--host",
+        type=str,
+        help="IP Address of the kernel provider",
+        required=False,
+        default="127.0.0.1",
+    )
+    parser.add_argument(
         "--root_path",
         type=str,
         help="Root path of the kernel provider",
@@ -93,5 +104,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    provider = KernelProvider(f"tcp://{args.address}", args.root_path)
+    provider = KernelProvider(f"tcp://{args.address}", args.host, args.root_path)
     provider.run()
