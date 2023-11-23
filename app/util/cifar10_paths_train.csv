@@ -1,0 +1,11 @@
+image_path, label
+/dataset/traindata/0001.jpg, 1
+/dataset/traindata/0002.jpg, 3
+/dataset/traindata/0003.jpg, 7
+/dataset/traindata/0004.jpg, 5
+/dataset/traindata/0005.jpg, 1
+/dataset/traindata/0006.jpg, 2
+/dataset/traindata/0007.jpg, 7
+/dataset/traindata/0008.jpg, 9
+/dataset/traindata/0009.jpg, 5
+/dataset/traindata/0010.jpg, 3
