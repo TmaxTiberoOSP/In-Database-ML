@@ -35,19 +35,29 @@ class KernelProvider(KernelNode):
         self.limit = settings["limit"]
 
     def on_master_spwan_kernel(self, *_, flow: Flow, **__) -> None:
-        current = asyncio.get_event_loop()
+        if len(self.kernels) >= self.limit:
+            flow.set_cleanup()
 
-        kernel = KernelProcess(
-            self._gen_unique_id(self.kernels),
-            self.root_path,
-            self._port,
-            self._identity,
-            flow,
-        )
-        self.kernels[kernel.kernel_id] = kernel
-        kernel.start()
+            self.send(
+                ProviderMessage.SPWAN_KERNEL_REPLY,
+                json_body=None,
+                flow=flow,
+                to_master=True,
+            )
+        else:
+            current = asyncio.get_event_loop()
 
-        asyncio.set_event_loop(current)
+            kernel = KernelProcess(
+                self._gen_unique_id(self.kernels),
+                self.root_path,
+                self._port,
+                self._identity,
+                flow,
+            )
+            self.kernels[kernel.kernel_id] = kernel
+            kernel.start()
+
+            asyncio.set_event_loop(current)
 
     # Kernel Events
     def on_kernel_ready(self, id, connection, flow=Flow, **_) -> None:

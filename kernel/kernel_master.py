@@ -68,19 +68,28 @@ class KernelMaster(KernelNode):
             flow=flow,
         )
 
-        self.providers.add(provider_id)
+        if connection:
+            self.providers.add(provider_id)
 
     # Client Events
     def on_client_request_kernel(self, client_id, _, flow: Flow, **__) -> None:
         if self.providers:
             flow.args = client_id
+
             self.send(
                 MasterMessage.SPWAN_KERNEL,
                 id=self.providers.pop(),
                 flow=flow,
             )
         else:
-            pass  # XXX: 준비된 프로바이더 없는 경우 에러 메시지 전송
+            flow.set_cleanup()
+
+            self.send(
+                MasterMessage.RES_KERNEL,
+                id=client_id,
+                json_body=None,
+                flow=flow,
+            )
 
 
 if __name__ == "__main__":

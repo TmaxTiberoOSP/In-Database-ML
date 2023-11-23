@@ -189,12 +189,13 @@ class KernelClient(KernelNode):
         self.listen(MasterMessage.RES_KERNEL, self.on_res_kernel)
 
     def on_res_kernel(self, _, connection, flow: Flow, **__) -> None:
-        flow.set_cleanup()
+        kernel = None
 
-        kernel = KernelConnection(**connection)
-        self.kernels[kernel.id] = kernel
+        if connection:
+            kernel = KernelConnection(**connection)
+            self.kernels[kernel.id] = kernel
+
         flow.future.set_result(kernel)
-
         self.del_flow(flow)
 
     async def create_kernel(self) -> KernelConnection:

@@ -15,7 +15,10 @@ router = APIRouter(prefix="/kernels", tags=["Kernel"])
 async def create_kernel(kc: KernelClient = Depends(get_client)):
     kernel = await kc.create_kernel()
 
-    return kernel.id
+    if kernel:
+        return kernel.id
+    else:
+        raise HTTPException(status_code=503, detail="no providers available")
 
 
 @router.post("/{id}")
