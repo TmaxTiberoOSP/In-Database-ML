@@ -49,16 +49,10 @@ class KernelProcessServer(KernelNode):
     def send_to_connect(self, *args, **kwargs) -> None:
         self.send(*args, id=self._connection_id, **kwargs)
 
-    async def send_file(self, source_path: str, remote_path: str) -> None:
-        flow = self.new_flow(future=True)
-        flow.args = ServingFile(source_path)
-
-        self.send_to_connect(
-            NodeMessage.REQ_FILE_SERVING,
-            json_body=remote_path,
-            flow=flow,
+    def send_file_to_connect(self, source_path: str, remote_path: str) -> None:
+        asyncio.ensure_future(
+            self.send_file(source_path, remote_path, id=self._connection_id)
         )
-        await flow.future
 
 
 class KernelProcess(Process):

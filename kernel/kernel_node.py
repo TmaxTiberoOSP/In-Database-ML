@@ -239,6 +239,26 @@ class KernelNode(object):
         if flow and flow._flag_cleanup:
             del self._flows[flow.id]
 
+    async def send_file(
+        self,
+        source_path: str,
+        remote_path: str,
+        to_master: bool = False,
+        id: bytes | None = None,
+    ) -> None:
+        flow = self.new_flow(future=True)
+        flow.args = ServingFile(source_path)
+
+        self.send(
+            NodeMessage.REQ_FILE_SERVING,
+            id=id,
+            to_master=to_master,
+            json_body=remote_path,
+            flow=flow,
+        )
+
+        await flow.future
+
     def run(self) -> None:
         def signal_handler(*_):
             self._ioloop.add_callback_from_signal(self.stop)
