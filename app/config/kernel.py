@@ -89,9 +89,9 @@ class KernelConnection(KernelNode):
 
         hb.on_recv(pong)
 
-        def ping():
+        async def ping():
             if self._pong:
-                self.stop()
+                await self.stop()
             else:
                 hb.send(b"ping")
                 self._pong = True
