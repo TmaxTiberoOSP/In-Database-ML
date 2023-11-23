@@ -6,6 +6,7 @@ import asyncio
 import errno
 import logging
 import os
+import shutil
 import signal
 from abc import abstractmethod
 from asyncio import Future
@@ -293,6 +294,14 @@ class KernelNode(object):
 
         self._stream.flush()
         self._stream.close()
+
+        try:
+            walk = list(os.walk(self.root_path))
+            for path, _, _ in walk[::-1]:
+                if len(os.listdir(path)) == 0:
+                    shutil.rmtree(path)
+        except:
+            pass
 
         if io_stop:
             self._ioloop.stop()
