@@ -10,8 +10,8 @@ from multiprocessing import Process
 from ipykernel.kernelapp import IPKernelApp
 from setproctitle import setproctitle
 
-from kernel.kernel_message import KernelMessage, NodeMessage, NodeType
-from kernel.kernel_node import Flow, KernelNode, ServingFile
+from kernel.kernel_message import KernelMessage, NodeType
+from kernel.kernel_node import Flow, KernelNode
 
 
 class KernelProcessServer(KernelNode):
@@ -27,7 +27,7 @@ class KernelProcessServer(KernelNode):
         process: Process,
     ) -> None:
         super().__init__(NodeType.Kernel, root_path=root_path)
-        self.connect(provider_address, to_master=True)
+        self.connect(provider_address, id=provider_id)
 
         self._provider_id = provider_id
         self._connection_id = None
@@ -135,6 +135,8 @@ class KernelProcess(Process):
             app.kernel.do_shutdown(False)
 
         signal.signal(signal.SIGTERM, signal_handler)
+
+        server.run(io_stop=False)
         app.start()
 
     def stop(self) -> None:

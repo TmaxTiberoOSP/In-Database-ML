@@ -104,7 +104,7 @@ class ServingFile(object):
 
 
 class KernelNode(object):
-    is_active: bool = False
+    is_active: bool
     type: NodeType
     root_path: str
 
@@ -127,6 +127,8 @@ class KernelNode(object):
         socket.setsockopt(ROUTER_MANDATORY, 1)
 
         logging.getLogger("tornado.general").addFilter(KernelNodeFilter())
+
+        self.is_active = False
 
         # IDENTITY 설정 (Master의 경우 고정)
         self.type = type
@@ -260,9 +262,9 @@ class KernelNode(object):
 
         await flow.future
 
-    def run(self) -> None:
+    def run(self, io_stop: bool = True) -> None:
         def signal_handler(*_):
-            self._ioloop.add_callback_from_signal(self.stop)
+            self._ioloop.add_callback_from_signal(self.stop, io_stop=io_stop)
 
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
@@ -286,25 +288,26 @@ class KernelNode(object):
                 break
 
     async def stop(self, io_stop: bool = True) -> None:
-        self.is_active = False
+        if self.is_active:
+            self.is_active = False
 
-        await self.on_stop()
-        for id in self._connected:
-            self.send(NodeMessage.DISCONNECT, id=id)
+            await self.on_stop()
+            for id in self._connected:
+                self.send(NodeMessage.DISCONNECT, id=id)
 
-        self._stream.flush()
-        self._stream.close()
+            self._stream.flush()
+            self._stream.close()
 
-        try:
-            walk = list(os.walk(self.root_path))
-            for path, _, _ in walk[::-1]:
-                if len(os.listdir(path)) == 0:
-                    shutil.rmtree(path)
-        except:
-            pass
+            try:
+                walk = list(os.walk(self.root_path))
+                for path, _, _ in walk[::-1]:
+                    if len(os.listdir(path)) == 0:
+                        shutil.rmtree(path)
+            except:
+                pass
 
-        if io_stop:
-            self._ioloop.stop()
+            if io_stop:
+                self._ioloop.stop()
 
     @abstractmethod
     async def on_stop(self) -> Any:

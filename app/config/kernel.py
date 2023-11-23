@@ -7,7 +7,7 @@ from enum import Enum, unique
 from typing import Any, Dict, List
 
 from anyio import sleep
-from fastapi import Request
+from fastapi import FastAPI, Request
 from jupyter_client.session import Session
 from tornado import ioloop
 from zmq import DEALER, REQ, SUB
@@ -193,6 +193,7 @@ class KernelClient(KernelNode):
 
         if connection:
             kernel = KernelConnection(**connection)
+            kernel.run(io_stop=False)
             self.kernels[kernel.id] = kernel
 
         flow.future.set_result(kernel)
@@ -213,10 +214,12 @@ class KernelClient(KernelNode):
         return self.kernels[id]
 
 
-def init(app) -> None:
-    app.kc = KernelClient(
+def init(app: FastAPI) -> None:
+    client = KernelClient(
         f"tcp://{settings.kernel_master_host}:{settings.kernel_master_port}"
     )
+    client.run(io_stop=False)
+    app.kc = client
 
 
 async def stop(app) -> None:

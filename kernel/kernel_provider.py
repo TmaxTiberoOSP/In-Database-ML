@@ -3,6 +3,8 @@
 # kernel/kernel_provider.py
 
 import asyncio
+import errno
+import signal
 from typing import Dict
 
 from kernel.kernel_message import (
@@ -33,11 +35,27 @@ class KernelProvider(KernelNode):
         # Kernel Events
         self.listen(KernelMessage.READY_KERNEL, self.on_kernel_ready)
 
+    def kill_kernel(self, kernel: KernelProcess):
+        try:
+            os.killpg(kernel.pid, signal.SIGKILL)
+            kernel.join()
+        except OSError as e:
+            if e.errno != errno.ESRCH:
+                raise
+
+    def on_disconnect(self, id, _, **__) -> None:
+        for kernel in self.kernels.values():
+            if kernel.id != id:
+                continue
+
+            self.kill_kernel(kernel)
+            del self.kernels[kernel.id]
+
     # Master Events
     def on_master_setup(self, _, settings, **__) -> None:
         self.limit = settings["limit"]
 
-    def on_master_spwan_kernel(self, *_, flow: Flow, **__) -> None:
+    def on_master_spwan_kernel(self, *_, flow: Flow) -> None:
         if len(self.kernels) >= self.limit:
             flow.set_cleanup()
 
@@ -64,7 +82,7 @@ class KernelProvider(KernelNode):
             asyncio.set_event_loop(current)
 
     # Kernel Events
-    def on_kernel_ready(self, id, connection, flow=Flow, **_) -> None:
+    def on_kernel_ready(self, id, connection, flow=Flow) -> None:
         flow.set_cleanup()
 
         kernel = self.kernels[connection["kernel_id"]]
@@ -79,7 +97,7 @@ class KernelProvider(KernelNode):
 
     async def on_stop(self):
         for kernel in self.kernels.values():
-            kernel.stop()
+            self.kill_kernel(kernel)
 
 
 if __name__ == "__main__":
