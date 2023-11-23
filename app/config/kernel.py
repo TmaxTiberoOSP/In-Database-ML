@@ -152,7 +152,6 @@ class KernelConnection(KernelNode):
 
     async def execute(self, code, msg_id: str | None = None) -> str:
         while not self.status is Status.IDLE:
-            print(self.status)
             await sleep(0.1)
 
         msg = self._session.msg(

@@ -270,7 +270,7 @@ class KernelNode(object):
         signal.signal(signal.SIGINT, signal_handler)
 
         self.is_active = True
-        while self.is_active:
+        while self.is_active and io_stop:
             try:
                 self._ioloop.start()
             except ZMQError as e:
