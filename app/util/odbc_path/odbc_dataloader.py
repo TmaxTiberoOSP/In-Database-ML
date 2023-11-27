@@ -1,36 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# utils/loader.py
+# utils/odbc_dataloader.py
 
 import torch
 from torch.utils.data import Dataset, Dataloader
-import jaydebeapi
+import pyodbc
 from PIL import Image
 import io
 from torchvision import transforms
 import numpy as np
 
-
-#database information(To fix on your setting)
-tbdriver = "com.tmax.tibero.jdbc.TbDriver"
-database_url = "jdbc:tibero:thin:@<hostname>:<port>:<database_name>"
-username = "<your_username>"
-password = "<your_password>"
-jdbc_driver_jar = "/path/to/tibero7-jdbc.jar"  # Path to the Tibero JDBC driver JAR file
-
-"""
-tbdriver = "com.tmax.tibero.jdbc.TbDriver"
-database_url = "jdbc:tibero:jamong:@localhost:8629:tibero"
-username = "tibero"
-password = "tmax"
-jdbc_driver_jar = "$TB_HOME/client/lib/jar/tibero7-jdbc.jar"  # Path to the Tibero JDBC driver JAR file
-
-"""
-
-
 class Classification_Dataset(Dataset):
-    def __init__(self, train: bool = True, jdbc_connection, query, transform = None):
-        self.conn = jdbc_connection
+    def __init__(self, train: bool = True, odbc_connection, query, transform = None):
+        self.conn = pyodbc.connect(odbc_connection)
+        self.conn.setdecoding(pyodbc.SQL_CHAR, encoding='utf-8')
+        self.conn.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-8')
+        self.conn.setdecoding(pyodbc.SQL_WMETADATA, encoding='utf-32le')
+        self.conn.setencoding(encoding='utf-8')
+
         self.cursor = self.conn.cursor()
         self.query = query
         self.cursor.execute(self.query)
@@ -64,18 +51,13 @@ norm_transform = transforms.Compose([
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
 ])
 
-#jdbc connection
-jdbc_connection = jaydebeapi.connect(
-    tbdriver,
-    database_url,
-    [username, password],
-    jdbc_driver_jar,
-)
+odbc_connection = 'DSN=tibero7;UID=tibero;PWD=tmax'
+
 
 train_query = "SELECT label, image_data FROM t_training_data"
 test_query = "SELECT label, image_data FROM t_test_data"
-train_dataset = Classification_Dataset(True, jdbc_connection, train_query)
-test_dataset = Classification_Dataset(False, jdbc_connection, test_query)
+train_dataset = Classification_Dataset(True, odbc_connection, train_query, norm_transform)
+test_dataset = Classification_Dataset(False, odbc_connection, test_query, norm_transform)
 
 batch_size = 10
 
@@ -83,13 +65,12 @@ train_loader = Dataloader(
     train_dataset,
     batch_size = batch_size,
     shuffle = True,
-    num_workers = 0,
+    num_workers = 4,
 )
 
-test_loader = DataLoader(
+test_loader = Dataloader(
     test_dataset,
     batch_size = batch_size,
     shuffle = False,
-    num_workers = 0,
+    num_workers = 4,
 )
-

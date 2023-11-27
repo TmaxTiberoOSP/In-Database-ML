@@ -30,18 +30,18 @@ try:
 
     try:
         # Create a sequence for generating unique IDs
-        create_sequence_query = "CREATE SEQUENCE your_sequence"
+        create_sequence_query = "CREATE SEQUENCE my_sequence"
         cursor.execute(create_sequence_query)
 
         # Commit the transaction
         jdbc_connection.jconn.commit()
 
-        print("Sequence 'your_sequence' created successfully.")
+        print("Sequence 'my_sequence' created successfully.")
 
         # Example SQL query to create a table for image data
         create_table_query = """
         CREATE TABLE my_table (
-            id NUMBER DEFAULT your_sequence.NEXTVAL PRIMARY KEY,
+            id NUMBER DEFAULT my_sequence.NEXTVAL PRIMARY KEY,
             image_name VARCHAR(255) NOT NULL,
             image_data BLOB,
             image_label int NOT NULL,
@@ -71,10 +71,10 @@ try:
 
         # Attempt to drop the sequence and table on error
         try:
-            drop_sequence_query = "DROP SEQUENCE your_sequence"
+            drop_sequence_query = "DROP SEQUENCE my_sequence"
             cursor.execute(drop_sequence_query)
             jdbc_connection.jconn.commit()
-            print("Sequence 'your_sequence' dropped successfully.")
+            print("Sequence 'my_sequence' dropped successfully.")
         except Exception as drop_sequence_error:
             print(f"Failed to drop sequence. Error: {drop_sequence_error}")
 
