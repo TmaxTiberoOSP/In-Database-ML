@@ -13,8 +13,17 @@ PROJ_PATH = str(Path(__file__).parent.parent.parent.absolute())
 
 class Settings(BaseSettings):
     app_name: str = "Python ML Server"
+    # Server
     host: str = "127.0.0.1"
     port: int = 3000
+
+    # DB
+    jdbc_driver: str = "/path/to/tibero-jdbc.jar"
+    db_host: str = "127.0.0.1"
+    db_port: int = "8629"
+    db_name: str = "tibero"
+    db_user: str = "tibero"
+    db_passwd: str = "tmax"
     meta_db_url: str = f"sqlite:///{PROJ_PATH}/ml.db"
 
     # Kernel

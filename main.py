@@ -27,6 +27,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(router.model)
 app.include_router(router.kernel)
 
 if __name__ == "__main__":
