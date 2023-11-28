@@ -94,6 +94,8 @@ class RequestTable(BaseModel):
 
 class RequestTrain(BaseModel):
     train_id: int
+    num_epochs: int
+    mini_batches: int
     dataset: RequestTable
     testset: RequestTable
 
