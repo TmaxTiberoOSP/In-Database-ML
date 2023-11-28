@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 # app/routes/model_router.py
 
+from io import StringIO
+
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from jaydebeapi import Connection
 
 from app.config.tibero import get_db
@@ -13,6 +16,7 @@ from app.model.model import (
     RequestTrain,
     get_model_from_db,
 )
+from app.util.source_generator import get_model_source
 
 router = APIRouter(prefix="/models", tags=["Model"])
 
@@ -35,3 +39,19 @@ def inference_model(model_id: int, req: RequestInference):
 @router.post("/{model_id}/score")
 def score_model(model_id: int, req: RequestScore):
     pass
+
+
+@router.get("/{model_id}/source/network")
+async def generate_network_source(model_id: int, db: Connection = Depends(get_db)):
+    model = get_model_from_db(model_id, db)
+    vfile = StringIO()
+
+    vfile.write(get_model_source(model))
+
+    return StreamingResponse(
+        iter([vfile.getvalue()]),
+        media_type="text/plain",
+        headers={
+            "Content-Disposition": f"attachment; filename={model.id}_{model.name}_network_source.py",
+        },
+    )

@@ -28,6 +28,15 @@ class Component(BaseModel):
             code=default_str(obj, "code"),
         )
 
+    def is_container(self):
+        return self.type in [
+            "Module",
+            "Sequential",
+            "ModuleList",
+            "ModuleDict",
+            "ParameterList",
+        ]
+
 
 class Model(BaseModel):
     id: int
@@ -49,6 +58,12 @@ class Model(BaseModel):
 
     def append_layer(self, json_raw) -> None:
         self.layers.append(Component(json_raw))
+
+    def get_source_classname(self):
+        return self.name[0].upper() + self.name[1:]
+
+    def get_source_name(self):
+        return self.name.lower()
 
 
 def get_model_from_db(model_id: int, db: Connection) -> Model:
