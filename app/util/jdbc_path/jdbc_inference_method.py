@@ -4,6 +4,7 @@ import io
 from torchvision import transforms
 import numpy as np
 from io import BytesIO
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 #torch
 import torch
@@ -109,17 +110,29 @@ print(f"Predicted Class: {predicted_class}")
 
 # Evaluate the model on the test set
 model.eval()
-correct_predictions = 0
-total_samples = 0
 
+# Define lists to store true labels and predicted labels
+true_labels = []
+predicted_labels = []
+
+# Perform inference on the test loader
 with torch.no_grad():
     for images, labels in test_loader:
         outputs = model(images)
         _, predicted = torch.max(outputs, 1)
-        correct_predictions += (predicted == labels).sum().item()
-        total_samples += labels.size(0)
+
+        true_labels.extend(labels.numpy())
+        predicted_labels.extend(predicted.numpy())
 
 # Calculate accuracy
-accuracy = correct_predictions / total_samples
+accuracy = accuracy_score(true_labels, predicted_labels)
+print(f'Accuracy: {accuracy}')
 
-print(f"Accuracy on the test set: {accuracy * 100:.2f}%")
+# Calculate classification report
+class_report = classification_report(true_labels, predicted_labels)
+print(f'Classification Report:\n{class_report}')
+
+# Calculate confusion matrix
+conf_matrix = confusion_matrix(true_labels, predicted_labels)
+print(f'Confusion Matrix:\n{conf_matrix}')
+
