@@ -6,7 +6,7 @@
 from app.model.model import Component, Model
 
 
-def get_model_source(model: Model):
+def get_network_source(model: Model):
     def class_init_source(c: Component):
         source = f"        "
         if c.code:

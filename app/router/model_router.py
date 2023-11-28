@@ -16,7 +16,7 @@ from app.model.model import (
     RequestTrain,
     get_model_from_db,
 )
-from app.util.source_generator import get_model_source
+from app.util.source_generator import get_network_source
 
 router = APIRouter(prefix="/models", tags=["Model"])
 
@@ -41,17 +41,24 @@ def score_model(model_id: int, req: RequestScore):
     pass
 
 
-@router.get("/{model_id}/source/network")
-async def generate_network_source(model_id: int, db: Connection = Depends(get_db)):
-    model = get_model_from_db(model_id, db)
+def generate_source_response(source: str, filename: str) -> StreamingResponse:
     vfile = StringIO()
 
-    vfile.write(get_model_source(model))
+    vfile.write(source)
 
     return StreamingResponse(
         iter([vfile.getvalue()]),
         media_type="text/plain",
         headers={
-            "Content-Disposition": f"attachment; filename={model.id}_{model.name}_network_source.py",
+            "Content-Disposition": f"attachment; filename={filename}",
         },
+    )
+
+
+@router.get("/{model_id}/source/network")
+async def generate_network_source(model_id: int, db: Connection = Depends(get_db)):
+    model = get_model_from_db(model_id, db)
+
+    return generate_source_response(
+        get_network_source(model), f"{model.id}_{model.name}_network_source.py"
     )
