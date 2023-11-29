@@ -2,11 +2,42 @@
 # -*- coding: utf-8 -*-
 # app/model/model.py
 
+import io
 import json
 
+import torchvision.transforms as transforms
 from fastapi import HTTPException
 from jaydebeapi import Connection
+from PIL import Image
 from pydantic import BaseModel
+from torch import Tensor
+
+
+class RequestTable(BaseModel):
+    table_name: str
+    label_column_name: str
+    data_column_name: str
+
+
+class RequestTrain(BaseModel):
+    train_id: int
+    num_epochs: int
+    mini_batches: int
+    dataset: RequestTable
+    testset: RequestTable
+
+
+class RequestInferenceImage(BaseModel):
+    train_id: int
+    data_id: int
+    # TODO: 모델 정보를 바탕으로 width, height 추출하는 방법 리서치
+    width: int = 32
+    height: int = 32
+
+
+class RequestScore(BaseModel):
+    train_id: int
+    testset: RequestTable
 
 
 def default_str(dict, key, defulat="") -> str:
@@ -66,45 +97,74 @@ class Model(BaseModel):
         return self.name.lower()
 
 
+class Train(BaseModel):
+    id: int
+    mid: int
+    kernel: str
+    status: str
+    path: str
+
+    def __init__(self, id, mid, kernel, status, path) -> None:
+        super().__init__(id=id, mid=mid, kernel=kernel, status=status, path=path)
+
+
 def get_model_from_db(model_id: int, db: Connection) -> Model:
-    cursor = db.cursor()
+    try:
+        cursor = db.cursor()
 
-    cursor.execute(f"SELECT * FROM ML_MODEL WHERE ID={model_id}")
-    result = cursor.fetchall()
+        cursor.execute(f"SELECT * FROM ML_MODEL WHERE ID={model_id}")
+        result = cursor.fetchone()
 
-    if len(result) == 0:
-        raise HTTPException(status_code=404, detail="model not found")
+        if not result:
+            raise HTTPException(status_code=404, detail="model not found")
 
-    model = Model(*result[0])
+        model = Model(*result)
 
-    cursor.execute(f"SELECT LAYER FROM ML_MODEL_LAYER WHERE MID={model_id}")
-    result = cursor.fetchall()
+        cursor.execute(f"SELECT LAYER FROM ML_MODEL_LAYER WHERE MID={model_id}")
+        result = cursor.fetchall()
 
-    for (json_raw,) in result:
-        model.append_layer(json_raw)
+        for (json_raw,) in result:
+            model.append_layer(json_raw)
 
-    return model
-
-
-class RequestTable(BaseModel):
-    table_name: str
-    label_column_name: str
-    data_column_name: str
+        return model
+    finally:
+        cursor.close()
 
 
-class RequestTrain(BaseModel):
-    train_id: int
-    num_epochs: int
-    mini_batches: int
-    dataset: RequestTable
-    testset: RequestTable
+def get_train_info_from_db(train_id: int, db: Connection) -> Train:
+    try:
+        cursor = db.cursor()
+
+        cursor.execute(f"SELECT * FROM ML_TRAIN WHERE ID={train_id}")
+        result = cursor.fetchone()
+
+        if not result:
+            raise HTTPException(status_code=404, detail="train info not found")
+
+        train = Train(*result)
+
+        return train
+    finally:
+        cursor.close()
 
 
-class RequestInference(BaseModel):
-    train_id: int
-    img_id: int
+def get_inference_image_from_db(req: RequestInferenceImage, db: Connection) -> Tensor:
+    try:
+        cursor = db.cursor()
 
+        cursor.execute(f"SELECT DATA FROM ML_INFERENCE WHERE ID={req.data_id}")
+        (blob,) = cursor.fetchone()
 
-class RequestScore(BaseModel):
-    train_id: int
-    testset: RequestTable
+        if not blob:
+            raise HTTPException(
+                status_code=404, detail="inference input data not found"
+            )
+
+        image = Image.open(io.BytesIO(bytes(blob.getBytes(1, int(blob.length())))))
+        transform = transforms.Compose(
+            [transforms.Resize((req.width, req.height)), transforms.ToTensor()]
+        )
+
+        return transform(image).unsqueeze(0)
+    finally:
+        cursor.close()

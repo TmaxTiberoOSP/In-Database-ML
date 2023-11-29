@@ -4,6 +4,7 @@
 
 from io import StringIO
 
+import torch
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from jaydebeapi import Connection
@@ -12,10 +13,12 @@ from app.config.kernel import KernelClient, get_client
 from app.config.tibero import get_db
 from app.model.model import (
     Model,
-    RequestInference,
+    RequestInferenceImage,
     RequestScore,
     RequestTrain,
+    get_inference_image_from_db,
     get_model_from_db,
+    get_train_info_from_db,
 )
 from app.util.source_generator import get_network_source, get_train_source
 
@@ -43,9 +46,25 @@ async def train_model(
     pass
 
 
-@router.post("/{model_id}/inference")
-def inference_model(model_id: int, req: RequestInference):
-    pass
+@router.post("/{model_id}/inference-image")
+def inference_image_model(
+    model_id: int,
+    req: RequestInferenceImage,
+    to_json: bool = False,
+    db: Connection = Depends(get_db),
+):
+    train = get_train_info_from_db(req.train_id, db)
+    input = get_inference_image_from_db(req, db)
+
+    with torch.no_grad():
+        model = torch.jit.load(train.path)
+        model.eval()
+        output = model(input).numpy()[0].tolist()
+
+        if to_json:
+            return output
+        else:
+            return ",".join(map(str, output))
 
 
 @router.post("/{model_id}/score")
