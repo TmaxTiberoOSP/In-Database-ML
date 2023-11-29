@@ -34,23 +34,31 @@ class Classification_Dataset(Dataset):
         self.cursor.execute(self.query)
         self.data = self.cursor.fetchall()
         self.transform = transform
-
+        
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         record = self.data[idx]
-        label, binary_data = record[0], record[1]
+        label, blob_data = record[0], record[1]
 
+        b_stream = blob_data.getBinaryStream();
+        data = io.BytesIO()
+        chunk = b_stream.read()
+        while (chunk != -1):
+            data.write(chunk.to_bytes(1, 'little'))
+            chunk = b_stream.read()
+
+        
         # binary data to PIL image
-        image = Image.open(io.BytesIO(binary_data))
+        image = Image.open(data)
 
         # preprocessing if necessary
         if self.transform is not None:
             image = self.transform(image)
 
-        label = torch.tensor(label, dtype=torch.int)
-        image_data = torch.tensor(np.array(image), dtype=torch.float32).permute(2, 0, 1)
+        label = torch.tensor(label, dtype = torch.long)
+        image_data = torch.tensor(np.array(image), dtype=torch.float32)
 
         return image_data, label
 
