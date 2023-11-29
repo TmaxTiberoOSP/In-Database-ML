@@ -21,7 +21,7 @@ HOST = 127.0.0.1
 PORT = 3000
 
 # DB (see $TB_HOME/client/config/tbdsn.tbr)
-JDBC_DRIVER = $TB_HOME/client/lib/jar/tibero7-jdbc.jar
+JDBC_DRIVER = /path/to/tibero-jdbc.jar
 DB_HOST = 127.0.0.1
 DB_PORT = 8629
 DB_NAME = tibero

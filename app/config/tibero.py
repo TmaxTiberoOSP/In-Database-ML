@@ -10,12 +10,19 @@ from .settings import get
 settings = get()
 
 
-def get_db_connection() -> jaydebeapi.Connection:
+def get_db_connection(
+    db_host: str = settings.db_host,
+    db_port: int = settings.db_port,
+    db_name: str = settings.db_name,
+    db_user: str = settings.db_user,
+    db_passwd: str = settings.db_passwd,
+    jdbc_driver: str = settings.jdbc_driver,
+) -> jaydebeapi.Connection:
     return jaydebeapi.connect(
         "com.tmax.tibero.jdbc.TbDriver",
-        f"jdbc:tibero:thin:@{settings.db_host}:{settings.db_port}:{settings.db_name}",
-        [settings.db_user, settings.db_passwd],
-        settings.jdbc_driver,
+        f"jdbc:tibero:thin:@{db_host}:{db_port}:{db_name}",
+        [db_user, db_passwd],
+        jdbc_driver,
     )
 
 

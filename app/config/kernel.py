@@ -13,11 +13,11 @@ from tornado import ioloop
 from zmq import DEALER, REQ, SUB
 from zmq.eventloop.zmqstream import ZMQStream
 
-from app.config import settings
+from app.config.settings import DBInfo, get
 from kernel.kernel_message import ClientMessage, MasterMessage, NodeType
 from kernel.kernel_node import Flow, KernelNode
 
-settings = settings.get()
+settings = get()
 
 
 @unique
@@ -206,7 +206,12 @@ class KernelClient(KernelNode):
     async def create_kernel(self) -> KernelConnection:
         flow = self.new_flow(future=True)
 
-        self.send(ClientMessage.REQ_KERNEL, flow=flow, to_master=True)
+        self.send(
+            ClientMessage.REQ_KERNEL,
+            json_body={"db": settings.get_db_info()},
+            flow=flow,
+            to_master=True,
+        )
 
         return await flow.future
 

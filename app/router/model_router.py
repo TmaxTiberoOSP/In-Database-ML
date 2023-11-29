@@ -4,10 +4,11 @@
 
 from io import StringIO
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from jaydebeapi import Connection
 
+from app.config.kernel import KernelClient, get_client
 from app.config.tibero import get_db
 from app.model.model import (
     Model,
@@ -27,7 +28,18 @@ def get_model(model_id: int, db: Connection = Depends(get_db)):
 
 
 @router.post("/{model_id}/train")
-def train_model(model_id: int, req: RequestTrain):
+async def train_model(
+    model_id: int,
+    req: RequestTrain,
+    db: Connection = Depends(get_db),
+    kc: KernelClient = Depends(get_client),
+):
+    model = get_model_from_db(model_id, db)
+
+    kernel = await kc.create_kernel()
+    if not kernel:
+        raise HTTPException(status_code=503, detail="no providers available")
+
     pass
 
 

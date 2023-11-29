@@ -10,6 +10,7 @@ from multiprocessing import Process
 from ipykernel.kernelapp import IPKernelApp
 from setproctitle import setproctitle
 
+from app.config.tibero import get_db_connection
 from kernel.kernel_message import KernelMessage, NodeType
 from kernel.kernel_node import Flow, KernelNode
 
@@ -59,6 +60,7 @@ class KernelProcess(Process):
     id: bytes
 
     kernel_id: str  # uuid4
+    info: dict
     _provider_path: str
     _provider_host: str
     _provider_port: int
@@ -68,6 +70,7 @@ class KernelProcess(Process):
     def __init__(
         self,
         kernel_id: str,
+        info: dict,
         provider_path: str,
         provider_host: str,
         provider_port: int,
@@ -77,6 +80,7 @@ class KernelProcess(Process):
         super(KernelProcess, self).__init__()
 
         self.kernel_id = kernel_id
+        self.info = info
         self._provider_path = provider_path
         self._provider_host = provider_host
         self._provider_port = provider_port
@@ -107,6 +111,13 @@ class KernelProcess(Process):
             "_ROOT_PATH": server.root_path,
             "_SERVER": server,
         }
+
+        if "db" in self.info:
+
+            def wrap_get_db_connection():
+                return get_db_connection(**self.info["db"])
+
+            app.user_ns["get_db_connection"] = wrap_get_db_connection
 
         app.initialize()
         app.cleanup_connection_file()
