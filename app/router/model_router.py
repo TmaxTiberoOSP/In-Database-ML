@@ -20,7 +20,11 @@ from app.model.model import (
     get_model_from_db,
     get_train_info_from_db,
 )
-from app.util.source_generator import get_network_source, get_train_source
+from app.util.source_generator import (
+    get_dataloader_source,
+    get_network_source,
+    get_train_source,
+)
 
 router = APIRouter(prefix="/models", tags=["Model"])
 
@@ -83,6 +87,32 @@ def generate_source_response(source: str, filename: str) -> StreamingResponse:
         headers={
             "Content-Disposition": f"attachment; filename={filename}",
         },
+    )
+
+
+@router.get("/{model_id}/source/dataloader")
+async def generate_dataloader_source(
+    model_id: int,
+    dataset_table: str,
+    dataset_label: str,
+    dataset_data: str,
+    testset_table: str,
+    testset_label: str,
+    testset_data: str,
+    db: Connection = Depends(get_db),
+):
+    model = get_model_from_db(model_id, db)
+
+    return generate_source_response(
+        get_dataloader_source(
+            dataset_table,
+            dataset_label,
+            dataset_data,
+            testset_table,
+            testset_label,
+            testset_data,
+        ),
+        f"{model.id}_{model.name}_dataloader_source.py",
     )
 
 

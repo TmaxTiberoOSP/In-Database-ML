@@ -28,13 +28,17 @@ except NameError:
 
 class Classification_Dataset(Dataset):
     def __init__(self, query, transform=None):
-        self.conn = get_db_connection()
-        self.cursor = self.conn.cursor()
-        self.query = query
-        self.cursor.execute(self.query)
-        self.data = self.cursor.fetchall()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(query)
+        self.data = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
         self.transform = transform
-        
+
     def __len__(self):
         return len(self.data)
 
@@ -42,14 +46,13 @@ class Classification_Dataset(Dataset):
         record = self.data[idx]
         label, blob_data = record[0], record[1]
 
-        b_stream = blob_data.getBinaryStream();
+        b_stream = blob_data.getBinaryStream()
         data = io.BytesIO()
         chunk = b_stream.read()
-        while (chunk != -1):
-            data.write(chunk.to_bytes(1, 'little'))
+        while chunk != -1:
+            data.write(chunk.to_bytes(1, "little"))
             chunk = b_stream.read()
 
-        
         # binary data to PIL image
         image = Image.open(data)
 
@@ -57,7 +60,7 @@ class Classification_Dataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        label = torch.tensor(label, dtype = torch.long)
+        label = torch.tensor(label, dtype=torch.long)
         image_data = torch.tensor(np.array(image), dtype=torch.float32)
 
         return image_data, label

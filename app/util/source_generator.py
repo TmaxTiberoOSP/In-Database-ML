@@ -3,10 +3,40 @@
 # app/util/source_generator.py
 
 
+from pathlib import Path
+
 from app.model.model import Component, Model
 
+dataloader_source_origin: str = ""
+with open(f"{Path(__file__).parent.absolute()}/jdbc_dataloader.py", "r") as file:
+    dataloader_source_origin = file.read()
 
-def get_network_source(model: Model):
+
+def get_dataloader_source(
+    dataset_table: str,
+    dataset_label: str,
+    dataset_data: str,
+    testset_table: str,
+    testset_label: str,
+    testset_data: str,
+) -> str:
+    replaces = [
+        ["{dataset.table_name}", dataset_table],
+        ["{dataset.label_column_name}", dataset_label],
+        ["{dataset.data_column_name}", dataset_data],
+        ["{testset.table_name}", testset_table],
+        ["{testset.label_column_name}", testset_label],
+        ["{testset.data_column_name}", testset_data],
+    ]
+
+    source = dataloader_source_origin
+    for old, new in replaces:
+        source = source.replace(old, new)
+
+    return source
+
+
+def get_network_source(model: Model) -> str:
     def class_init_source(c: Component):
         source = f"        "
         if c.code:
@@ -52,7 +82,7 @@ def get_network_source(model: Model):
     return source
 
 
-def get_train_source(model: Model, num_epochs: int, mini_batches: int):
+def get_train_source(model: Model, num_epochs: int, mini_batches: int) -> str:
     model_name = model.get_source_name()
     model_classname = model.get_source_classname()
     optim = model.optimizer
