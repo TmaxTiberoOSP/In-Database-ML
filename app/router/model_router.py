@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # app/routes/model_router.py
 
+import os
 from io import StringIO
 
 import torch
@@ -23,6 +24,7 @@ from app.model.model import (
 from app.util.source_generator import (
     get_dataloader_source,
     get_network_source,
+    get_test_metrics_source,
     get_train_source,
 )
 
@@ -95,9 +97,37 @@ def inference_image_model(
             return ",".join(map(str, output))
 
 
-@router.post("/{model_id}/score")
-def score_model(model_id: int, req: RequestScore):
-    pass
+@router.post("/{model_id}/test-metrics")
+async def test_metrics_model(
+    model_id: int,
+    req: RequestScore,
+    db: Connection = Depends(get_db),
+    kc: KernelClient = Depends(get_client),
+):
+    train = get_train_info_from_db(req.train_id, db)
+
+    kernel = await kc.create_kernel()
+    if not kernel:
+        raise HTTPException(status_code=503, detail="no providers available")
+
+    model_filename = os.path.split(train.path)[1]
+    await kernel.send_file(train.path, model_filename)
+
+    result = await kernel.execute(
+        get_test_metrics_source(
+            model_filename,
+            req.testset.table_name,
+            req.testset.label_column_name,
+            req.testset.data_column_name,
+        ),
+        "Test model",
+    )
+
+    for line in result:
+        if "__RESULT__" in line:
+            return line.replace("__RESULT__", "")
+
+    raise HTTPException(status_code=400)
 
 
 def generate_source_response(source: str, filename: str) -> StreamingResponse:

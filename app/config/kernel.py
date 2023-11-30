@@ -181,6 +181,9 @@ class KernelConnection(KernelNode):
 
         return reply
 
+    async def send_file(self, *args, **kwargs):
+        await super().send_file(*args, id=self._process_key, **kwargs)
+
 
 class KernelClient(KernelNode):
     kernels: Dict[str, KernelConnection] = {}

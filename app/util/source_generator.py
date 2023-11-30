@@ -19,6 +19,10 @@ train_source_origin: str = ""
 with open(f"{Path(__file__).parent.absolute()}/train.source", "r") as file:
     train_source_origin = file.read()
 
+test_metrics_source: str = ""
+with open(f"{Path(__file__).parent.absolute()}/test_metrics.source", "r") as file:
+    test_metrics_source = file.read()
+
 
 def get_dataloader_source(
     dataset_table: str,
@@ -104,6 +108,26 @@ def get_train_source(
     ]
 
     source = train_source_origin
+    for old, new in replaces:
+        source = source.replace(old, new)
+
+    return source
+
+
+def get_test_metrics_source(
+    model_filename: str,
+    testset_table: str,
+    testset_label: str,
+    testset_data: str,
+) -> str:
+    replaces = [
+        ["{MODEL_FILENAME}", model_filename],
+        ["{TESTSET_TABLE_NAME}", testset_table],
+        ["{TESTSET_LABEL_COLUMN_NAME}", testset_label],
+        ["{TESTSET_DATA_COLUMN_NAME}", testset_data],
+    ]
+
+    source = test_metrics_source
     for old, new in replaces:
         source = source.replace(old, new)
 
