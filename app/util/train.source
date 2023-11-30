@@ -101,6 +101,6 @@ except NameError:
 
 _SERVER: object
 try:
-    _SERVER.send_file(f"{_ROOT_PATH}/{OUTPUT_NAME}", "{OUTPUT_NAME}")
+    _SERVER.send_file_to_connect(f"{_ROOT_PATH}/{OUTPUT_NAME}", "{OUTPUT_NAME}")
 except Exception:
     pass
