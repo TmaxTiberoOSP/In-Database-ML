@@ -57,6 +57,7 @@ async def train_task(model: Model, req: RequestTrain, kernel: KernelConnection):
         get_train_source(model, req.train_id, req.num_epochs, req.mini_batches),
         "Step 4: Train model",
     )
+    await kernel.stop()
 
 
 @router.post("/{model_id}/train")
@@ -128,6 +129,8 @@ async def test_metrics_model(
     for line in result:
         if "__RESULT__" in line:
             return line.split("__RESULT__")[1]
+
+    await kernel.stop()
 
     raise HTTPException(status_code=400)
 
