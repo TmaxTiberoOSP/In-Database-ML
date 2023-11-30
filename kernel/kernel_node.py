@@ -188,7 +188,8 @@ class KernelNode(object):
             body = jsonapi.loads(rbody[1]) if bool(rbody[0]) else rbody[1]
 
         if type is not NodeMessage.STREAM_FILE:
-            print("  >", raw)  # XXX: logger
+            # print("  >", raw)  # XXX: logger
+            pass
 
         if key in self._handles:
             self._handles[key](id, body, flow=flow)
@@ -235,7 +236,8 @@ class KernelNode(object):
             payload.append(jsonapi.dumps(json_body))
 
         if type is not NodeMessage.STREAM_FILE:
-            print("<D ", payload)  # XXX: logger
+            # print("<D ", payload)  # XXX: logger
+            pass
 
         self._stream.send_multipart(payload)
 
