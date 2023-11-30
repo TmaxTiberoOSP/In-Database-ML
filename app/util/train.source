@@ -85,7 +85,8 @@ train_loader: DataLoader
 test_loader: DataLoader
 _SERVER: object
 try:
-    _SERVER.log("Train Start", stdout=True)
+    _SERVER.log("Train model...Start", stdout=True)
+
     {MODEL_NAME} = {MODEL_CLASS}()
     {LOSS_FN_NAME} = torch.nn.{LOSS_FN_TYPE}({LOSS_FN_PARAMS})
     {OPTIMIZER_NAME} = {OPTIMIZER_TYPE}({OPTIMIZER_PARAMS})
@@ -101,11 +102,14 @@ try:
         f"{_ROOT_PATH}/{OUTPUT_NAME}",
         _SERVER.log,
     )
-    _SERVER.log("Train Done", stdout=True)
 
-    _SERVER.log("Serving trained model Start", stdout=True)
+    _SERVER.log("Train model...Done", stdout=True)
+
+    _SERVER.log("Serving trained model...Start", stdout=True)
+
     _SERVER.send_file_to_connect(f"{_ROOT_PATH}/{OUTPUT_NAME}", "{OUTPUT_NAME}")
-    _SERVER.log("Serving trained model Done", stdout=True)
+
+    _SERVER.log("Serving trained model...Done", stdout=True)
 
 except Exception as e:
     print(e)

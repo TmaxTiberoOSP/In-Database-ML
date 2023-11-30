@@ -1,0 +1,25 @@
+#####################
+#  Network Source   #
+#####################
+
+import torch
+import torch.nn as nn
+
+_SERVER: object
+try:
+    _SERVER.log("Define network...Start", stdout=True)
+
+    class {MODEL_CLASS}(nn.Module):
+        def __init__(self):
+            super(Network, self).__init__()
+
+{DEFINE_LAYER}
+
+        def forward(self, input):
+{FORWARD_LAYER}
+
+            return input
+
+    _SERVER.log("Define network...Done", stdout=True)
+except Exception as e:
+    print(e)

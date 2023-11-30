@@ -56,7 +56,7 @@ class Classification_Dataset(Dataset):
 
 _SERVER: object
 try:
-    _SERVER.log("DataLoader Start", stdout=True)
+    _SERVER.log("Ready dataloader...Start", stdout=True)
 
     # preprocessing 예시(차후 proprecssing.py로 뺄 내용)
     norm_transform = transforms.Compose(
@@ -88,6 +88,6 @@ try:
         num_workers=4,
     )
 
-    _SERVER.log("DataLoader Done", stdout=True)
+    _SERVER.log("Ready dataloader...Done", stdout=True)
 except Exception as e:
     print(e)

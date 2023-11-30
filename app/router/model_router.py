@@ -45,15 +45,15 @@ async def train_task(model: Model, req: RequestTrain, kernel: KernelConnection):
             req.testset.label_column_name,
             req.testset.data_column_name,
         ),
-        "Step 2: init DataLoader",
+        "Step 2: Ready dataloader",
     )
     await kernel.execute(
         get_network_source(model),
-        "Step 3: define network",
+        "Step 3: Define network",
     )
     await kernel.execute(
         get_train_source(model, req.train_id, req.num_epochs, req.mini_batches),
-        "Step 4: train model",
+        "Step 4: Train model",
     )
 
 

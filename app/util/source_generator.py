@@ -11,6 +11,10 @@ dataloader_source_origin: str = ""
 with open(f"{Path(__file__).parent.absolute()}/jdbc_dataloader.source", "r") as file:
     dataloader_source_origin = file.read()
 
+network_source_origin: str = ""
+with open(f"{Path(__file__).parent.absolute()}/network.source", "r") as file:
+    network_source_origin = file.read()
+
 train_source_origin: str = ""
 with open(f"{Path(__file__).parent.absolute()}/train.source", "r") as file:
     train_source_origin = file.read()
@@ -42,7 +46,7 @@ def get_dataloader_source(
 
 def get_network_source(model: Model) -> str:
     def class_init_source(c: Component):
-        source = f"        "
+        source = f"            "
         if c.code:
             pass
         elif c.is_container():
@@ -54,7 +58,7 @@ def get_network_source(model: Model) -> str:
         def replace(str: str):
             return str.replace("{OUTPUT}", "input")
 
-        source = f"        input = "
+        source = f"            input = "
         if c.code:
             return (
                 source
@@ -64,24 +68,18 @@ def get_network_source(model: Model) -> str:
         else:
             return source + f"self.{c.name}(input)"
 
-    source = "#####################\n"
-    source += "#  Network Source   #\n"
-    source += "#####################\n\n"
+    replaces = [
+        ["{MODEL_CLASS}", model.get_source_classname()],
+        [
+            "{DEFINE_LAYER}",
+            "\n".join(filter(None, [class_init_source(c) for c in model.layers])),
+        ],
+        ["{FORWARD_LAYER}", "\n".join(class_forward_source(c) for c in model.layers)],
+    ]
 
-    source += "import torch\n"
-    source += "import torch.nn as nn\n"
-    source += "\n"
-
-    source += f"class {model.get_source_classname()}(nn.Module):\n"
-    source += "    def __init__(self):\n"
-    source += "        super(Network, self).__init__()\n\n"
-    source += (
-        "\n".join(filter(None, [class_init_source(c) for c in model.layers])) + "\n\n"
-    )
-
-    source += f"    def forward(self, input):\n"
-    source += "\n".join(class_forward_source(c) for c in model.layers) + "\n"
-    source += "\n        return input\n"
+    source = network_source_origin
+    for old, new in replaces:
+        source = source.replace(old, new)
 
     return source
 
