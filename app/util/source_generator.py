@@ -86,7 +86,9 @@ def get_network_source(model: Model) -> str:
     return source
 
 
-def get_train_source(model: Model, num_epochs: int, mini_batches: int) -> str:
+def get_train_source(
+    model: Model, train_id: int, num_epochs: int, mini_batches: int
+) -> str:
     model_name = model.get_source_name()
     replaces = [
         ["{MODEL_CLASS}", model.get_source_classname()],
@@ -98,6 +100,7 @@ def get_train_source(model: Model, num_epochs: int, mini_batches: int) -> str:
         ["{OPTIMIZER_NAME}", model.optimizer.name],
         ["{OPTIMIZER_PARAMS}", model.optimizer.params.replace("{MODEL}", model_name)],
         ["{OUTPUT_NAME}", f"{model.id}_{model_name}.pt"],
+        ["{TRAIN_ID}", str(train_id)],
         ["{NUM_EPOCHS}", str(num_epochs)],
         ["{MINI_BATCHES}", str(mini_batches)],
     ]

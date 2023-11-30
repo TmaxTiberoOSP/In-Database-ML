@@ -20,6 +20,12 @@ class DBInfo(TypedDict):
     db_passwd: str
 
 
+class LogInfo(TypedDict):
+    table: str
+    id_column: str
+    log_column: str
+
+
 class Settings(BaseSettings):
     app_name: str = "Python ML Server"
     # Server
@@ -35,6 +41,11 @@ class Settings(BaseSettings):
     db_passwd: str = "tmax"
     meta_db_url: str = f"sqlite:///{PROJ_PATH}/ml.db"
 
+    # Log
+    log_table: str = "ML_TRAIN_LOG"
+    log_id_column: str = "TID"
+    log_data_column: str = "LOG"
+
     # Kernel
     kernel_master_host: str = "127.0.0.1"
     kernel_master_port: int = 8090
@@ -49,6 +60,13 @@ class Settings(BaseSettings):
             "db_name": self.db_name,
             "db_user": self.db_user,
             "db_passwd": self.db_passwd,
+        }
+
+    def get_log_info(self) -> LogInfo:
+        return {
+            "table": self.log_table,
+            "id_column": self.log_id_column,
+            "log_column": self.log_data_column,
         }
 
 

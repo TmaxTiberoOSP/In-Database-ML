@@ -34,11 +34,12 @@ def train(
     num_epochs,
     mini_batches,
     model_output_path,
+    log,
 ):
     best_accuracy = 0.0
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f"The model will be running on {device}")
+    log(f"The model will be running on {device}", stdout=True)
     model.to(device)
 
     for epoch in range(num_epochs):
@@ -56,14 +57,15 @@ def train(
 
             running_loss += loss.item()
             if i % mini_batches == (mini_batches - 1):
-                print("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 1000))
+                log("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 1000))
                 running_loss = 0.0
 
         accuracy = testAccuracy(model, test_loader)
-        print(
+        log(
             "For epoch",
             epoch + 1,
             "the test accuracy over the whole test set is %d %%" % (accuracy),
+            stdout=True,
         )
 
         if accuracy > best_accuracy:
@@ -81,7 +83,9 @@ except NameError:
 {MODEL_CLASS}: torch.nn.Module
 train_loader: DataLoader
 test_loader: DataLoader
+_SERVER: object
 try:
+    _SERVER.log("Train Start", stdout=True)
     {MODEL_NAME} = {MODEL_CLASS}()
     {LOSS_FN_NAME} = torch.nn.{LOSS_FN_TYPE}({LOSS_FN_PARAMS})
     {OPTIMIZER_NAME} = {OPTIMIZER_TYPE}({OPTIMIZER_PARAMS})
@@ -95,12 +99,13 @@ try:
         {NUM_EPOCHS},
         {MINI_BATCHES},
         f"{_ROOT_PATH}/{OUTPUT_NAME}",
+        _SERVER.log,
     )
-except NameError:
-    pass
+    _SERVER.log("Train Done", stdout=True)
 
-_SERVER: object
-try:
+    _SERVER.log("Serving trained model Start", stdout=True)
     _SERVER.send_file_to_connect(f"{_ROOT_PATH}/{OUTPUT_NAME}", "{OUTPUT_NAME}")
-except Exception:
-    pass
+    _SERVER.log("Serving trained model Done", stdout=True)
+
+except Exception as e:
+    print(e)

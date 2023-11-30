@@ -3,9 +3,7 @@
 #####################
 
 import io
-from typing import Callable
 
-import jaydebeapi
 import numpy as np
 import torch
 from PIL import Image
@@ -56,8 +54,10 @@ class Classification_Dataset(Dataset):
         return image_data, label
 
 
-get_db_connection: Callable[[], jaydebeapi.Connection]
+_SERVER: object
 try:
+    _SERVER.log("DataLoader Start", stdout=True)
+
     # preprocessing 예시(차후 proprecssing.py로 뺄 내용)
     norm_transform = transforms.Compose(
         [
@@ -68,7 +68,7 @@ try:
 
     train_loader = DataLoader(
         Classification_Dataset(
-            get_db_connection(),
+            _SERVER.new_db_connection(),
             "SELECT {DATASET_LABEL_COLUMN_NAME}, {DATASET_DATA_COLUMN_NAME} FROM {DATASET_TABLE_NAME}",
             norm_transform,
         ),
@@ -79,7 +79,7 @@ try:
 
     test_loader = DataLoader(
         Classification_Dataset(
-            get_db_connection(),
+            _SERVER.new_db_connection(),
             "SELECT {TESTSET_LABEL_COLUMN_NAME}, {TESTSET_DATA_COLUMN_NAME} FROM {TESTSET_TABLE_NAME}",
             norm_transform,
         ),
@@ -88,6 +88,6 @@ try:
         num_workers=4,
     )
 
-
-except NameError:
-    pass
+    _SERVER.log("DataLoader Done", stdout=True)
+except Exception as e:
+    print(e)

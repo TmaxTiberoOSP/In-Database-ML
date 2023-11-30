@@ -208,7 +208,10 @@ class KernelClient(KernelNode):
 
         self.send(
             ClientMessage.REQ_KERNEL,
-            json_body={"db": settings.get_db_info()},
+            json_body={
+                "db": settings.get_db_info(),
+                "log": settings.get_log_info(),
+            },
             flow=flow,
             to_master=True,
         )

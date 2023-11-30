@@ -35,6 +35,7 @@ def get_model(model_id: int, db: Connection = Depends(get_db)):
 
 
 async def train_task(model: Model, req: RequestTrain, kernel: KernelConnection):
+    await kernel.execute(f"_SERVER.log_id = {req.train_id}", "Step 1: set log id")
     await kernel.execute(
         get_dataloader_source(
             req.dataset.table_name,
@@ -44,15 +45,15 @@ async def train_task(model: Model, req: RequestTrain, kernel: KernelConnection):
             req.testset.label_column_name,
             req.testset.data_column_name,
         ),
-        "1_dataloader",
+        "Step 2: init DataLoader",
     )
     await kernel.execute(
         get_network_source(model),
-        "2_network",
+        "Step 3: define network",
     )
     await kernel.execute(
-        get_train_source(model, req.num_epochs, req.mini_batches),
-        "3_train",
+        get_train_source(model, req.train_id, req.num_epochs, req.mini_batches),
+        "Step 4: train model",
     )
 
 
@@ -150,11 +151,15 @@ async def generate_network_source(model_id: int, db: Connection = Depends(get_db
 
 @router.get("/{model_id}/source/train")
 async def generate_train_source(
-    model_id: int, num_epochs: int, mini_batches: int, db: Connection = Depends(get_db)
+    model_id: int,
+    train_id: int,
+    num_epochs: int,
+    mini_batches: int,
+    db: Connection = Depends(get_db),
 ):
     model = get_model_from_db(model_id, db)
 
     return generate_source_response(
-        get_train_source(model, num_epochs, mini_batches),
+        get_train_source(model, train_id, num_epochs, mini_batches),
         f"{model.id}_{model.name}_train_source.py",
     )
