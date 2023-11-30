@@ -127,7 +127,7 @@ async def test_metrics_model(
 
     for line in result:
         if "__RESULT__" in line:
-            return line.replace("__RESULT__", "")
+            return line.split("__RESULT__")[1]
 
     raise HTTPException(status_code=400)
 
