@@ -32,37 +32,41 @@ class Classification_Dataset(Dataset):
         cursor = conn.cursor()
 
         cursor.execute(query)
-        self.data = cursor.fetchall()
+        data = cursor.fetchall()
+        self.labels = []
+        self.image_data = []
+        self.transform = transform
+
+        for record in data:
+            label, blob_data = record[0], record[1]
+            b_stream = blob_data.getBinaryStream()
+            img_data = io.BytesIO()
+
+            chunk = b_stream.read()
+            while chunk != -1:
+                img_data.write(chunk.to_bytes(1, "little"))
+                chunk = b_stream.read()
+
+            image = Image.open(img_data)
+
+            if self.transform is not None:
+                image = self.transform(image)
+
+            label = torch.tensor(label, dtype=torch.long)
+            image_data = torch.tensor(np.array(image), dtype=torch.float32)
+
+            self.labels.append(label)
+            self.image_data.append(image_data)
 
         cursor.close()
         conn.close()
 
-        self.transform = transform
-
     def __len__(self):
-        return len(self.data)
+        return len(self.labels)
 
     def __getitem__(self, idx):
-        record = self.data[idx]
-        label, blob_data = record[0], record[1]
-
-        b_stream = blob_data.getBinaryStream()
-        data = io.BytesIO()
-        chunk = b_stream.read()
-        while chunk != -1:
-            data.write(chunk.to_bytes(1, "little"))
-            chunk = b_stream.read()
-
-        # binary data to PIL image
-        image = Image.open(data)
-
-        # preprocessing if necessary
-        if self.transform is not None:
-            image = self.transform(image)
-
-        label = torch.tensor(label, dtype=torch.long)
-        image_data = torch.tensor(np.array(image), dtype=torch.float32)
-
+        label = self.labels[idx]
+        image_data = self.image_data[idx]
         return image_data, label
 
 
