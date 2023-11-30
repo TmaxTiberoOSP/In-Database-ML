@@ -56,6 +56,7 @@ class Classification_Dataset(Dataset):
 
 _SERVER: object
 try:
+    _SERVER.set_train_info(status="init kernel")
     _SERVER.log("Ready dataloader...Start", stdout=True)
 
     # preprocessing 예시(차후 proprecssing.py로 뺄 내용)
@@ -88,6 +89,7 @@ try:
         num_workers=4,
     )
 
+    _SERVER.set_train_info(status="ready dataloader")
     _SERVER.log("Ready dataloader...Done", stdout=True)
 except Exception as e:
     print(e)

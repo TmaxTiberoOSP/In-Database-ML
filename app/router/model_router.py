@@ -37,7 +37,7 @@ def get_model(model_id: int, db: Connection = Depends(get_db)):
 
 
 async def train_task(model: Model, req: RequestTrain, kernel: KernelConnection):
-    await kernel.execute(f"_SERVER.log_id = {req.train_id}", "Step 1: set log id")
+    await kernel.execute(f"_SERVER.train_id = {req.train_id}", "Step 1: set train id")
     await kernel.execute(
         get_dataloader_source(
             req.dataset.table_name,

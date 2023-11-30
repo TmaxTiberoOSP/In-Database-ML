@@ -20,7 +20,7 @@ class KernelProcessServer(KernelNode):
     _connection_id: bytes | None
     _process: Process
     _conn: jaydebeapi.Connection | None
-    log_id: str | None
+    train_id: str | None
 
     def __init__(
         self,
@@ -38,7 +38,7 @@ class KernelProcessServer(KernelNode):
         self._conn = (
             get_db_connection(**process.info["db"]) if "db" in process.info else None
         )
-        self.log_id = None
+        self.train_id = None
 
     async def on_stop(self):
         if self._conn:
@@ -74,13 +74,13 @@ class KernelProcessServer(KernelNode):
     def log(self, *args, stdout=True) -> None:
         message = "".join(map(str, args))
 
-        if self._conn and self.log_id is not None and "log" in self._process.info:
+        if self._conn and self.train_id is not None and "log" in self._process.info:
             log = self._process.info["log"]
             cursor = self._conn.cursor()
 
             cursor.execute(
                 f"INSERT INTO {log['table']} ({log['id_column']}, {log['log_column']}) VALUES (?, ?);",
-                (self.log_id, message),
+                (self.train_id, message),
             )
             self._conn.commit()
 
@@ -88,6 +88,26 @@ class KernelProcessServer(KernelNode):
 
         if stdout:
             print(message)
+
+    def set_train_info(
+        self,
+        status: str | None = None,
+        path: str | None = None,
+    ) -> None:
+        if self._conn and self.train_id is not None:
+            data = []
+            if status:
+                data.append(f"STATUS = '{status}'")
+            if path:
+                data.append(f"PATH = '{path}'")
+
+            if data:
+                cursor = self._conn.cursor()
+                cursor.execute(
+                    f"UPDATE ML_TRAIN SET {','.join(data)} WHERE ID = {self.train_id}"
+                )
+                self._conn.commit()
+                cursor.close()
 
 
 class KernelProcess(Process):

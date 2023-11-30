@@ -85,6 +85,7 @@ train_loader: DataLoader
 test_loader: DataLoader
 _SERVER: object
 try:
+    _SERVER.set_train_info(status="train start model")
     _SERVER.log("Train model...Start", stdout=True)
 
     {MODEL_NAME} = {MODEL_CLASS}()
@@ -105,10 +106,12 @@ try:
 
     _SERVER.log("Train model...Done", stdout=True)
 
+    _SERVER.set_train_info(status="serving trained model")
     _SERVER.log("Serving trained model...Start", stdout=True)
 
     _SERVER.send_file_to_connect(f"{_ROOT_PATH}/{OUTPUT_NAME}", "{OUTPUT_NAME}")
 
+    _SERVER.set_train_info(status="done")
     _SERVER.log("Serving trained model...Done", stdout=True)
 
 except Exception as e:
