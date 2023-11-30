@@ -83,6 +83,7 @@ def inference_image_model(
     to_json: bool = False,
     db: Connection = Depends(get_db),
 ):
+    get_model_from_db(model_id, db)
     train = get_train_info_from_db(req.train_id, db)
     input = get_inference_image_from_db(req, db)
 
@@ -104,6 +105,7 @@ async def test_metrics_model(
     db: Connection = Depends(get_db),
     kc: KernelClient = Depends(get_client),
 ):
+    get_model_from_db(model_id, db)
     train = get_train_info_from_db(req.train_id, db)
 
     kernel = await kc.create_kernel()
