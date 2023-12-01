@@ -2,25 +2,23 @@
 # -*- coding: utf-8 -*-
 # app/util/source_generator.py
 
-
-from pathlib import Path
-
 from app.model.model import Component, Model
+from app.util import static_dir
 
 dataloader_source_origin: str = ""
-with open(f"{Path(__file__).parent.absolute()}/jdbc_dataloader.source", "r") as file:
+with open(f"{static_dir}/jdbc_dataloader.source", "r") as file:
     dataloader_source_origin = file.read()
 
 network_source_origin: str = ""
-with open(f"{Path(__file__).parent.absolute()}/network.source", "r") as file:
+with open(f"{static_dir}/network.source", "r") as file:
     network_source_origin = file.read()
 
 train_source_origin: str = ""
-with open(f"{Path(__file__).parent.absolute()}/train.source", "r") as file:
+with open(f"{static_dir}/train.source", "r") as file:
     train_source_origin = file.read()
 
 test_metrics_source: str = ""
-with open(f"{Path(__file__).parent.absolute()}/test_metrics.source", "r") as file:
+with open(f"{static_dir}/test_metrics.source", "r") as file:
     test_metrics_source = file.read()
 
 
