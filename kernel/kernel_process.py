@@ -7,9 +7,11 @@ import os
 import signal
 from multiprocessing import Process
 
+import jaydebeapi
 from ipykernel.kernelapp import IPKernelApp
 from setproctitle import setproctitle
 
+from app.config.tibero import get_db_connection
 from kernel.kernel_message import KernelMessage, NodeType
 from kernel.kernel_node import Flow, KernelNode
 
@@ -18,6 +20,8 @@ class KernelProcessServer(KernelNode):
     _provider_id: bytes
     _connection_id: bytes | None
     _process: Process
+    _conn: jaydebeapi.Connection | None
+    train_id: str | None
 
     def __init__(
         self,
@@ -32,6 +36,14 @@ class KernelProcessServer(KernelNode):
         self._provider_id = provider_id
         self._connection_id = None
         self._process = process
+        self._conn = (
+            get_db_connection(**process.info["db"]) if "db" in process.info else None
+        )
+        self.train_id = None
+
+    async def on_stop(self):
+        if self._conn:
+            self._conn.close()
 
     def on_connect(self, id, type, **_) -> None:
         if NodeType.Connection.type(type):
@@ -49,16 +61,64 @@ class KernelProcessServer(KernelNode):
     def send_to_connect(self, *args, **kwargs) -> None:
         self.send(*args, id=self._connection_id, **kwargs)
 
-    def send_file_to_connect(self, source_path: str, remote_path: str) -> None:
-        asyncio.ensure_future(
-            self.send_file(source_path, remote_path, id=self._connection_id)
+    async def send_model_to_connect(
+        self, source_path: str, model_filename: str
+    ) -> None:
+        remote_path = await self.send_file(
+            source_path, model_filename, id=self._connection_id
         )
+        self.set_train_info(status="done", path=remote_path)
+
+    def new_db_connection(self) -> jaydebeapi.Connection:
+        if "db" in self._process.info:
+            return get_db_connection(**self._process.info["db"])
+        else:
+            raise Exception("db info not found")
+
+    def log(self, *args, stdout=True) -> None:
+        message = "".join(map(str, args))
+
+        if self._conn and self.train_id is not None and "log" in self._process.info:
+            log = self._process.info["log"]
+            cursor = self._conn.cursor()
+
+            cursor.execute(
+                f"INSERT INTO {log['table']} ({log['id_column']}, {log['log_column']}) VALUES (?, ?);",
+                (self.train_id, message),
+            )
+            self._conn.commit()
+
+            cursor.close()
+
+        if stdout:
+            print(message)
+
+    def set_train_info(
+        self,
+        status: str | None = None,
+        path: str | None = None,
+    ) -> None:
+        if self._conn and self.train_id is not None:
+            data = [f"KERNEL = '{self._process.kernel_id}'"]
+            if status:
+                data.append(f"STATUS = '{status}'")
+            if path:
+                data.append(f"PATH = '{path}'")
+
+            if data:
+                cursor = self._conn.cursor()
+                cursor.execute(
+                    f"UPDATE ML_TRAIN SET {', '.join(data)} WHERE ID = {self.train_id}"
+                )
+                self._conn.commit()
+                cursor.close()
 
 
 class KernelProcess(Process):
     id: bytes
 
     kernel_id: str  # uuid4
+    info: dict
     _provider_path: str
     _provider_host: str
     _provider_port: int
@@ -68,6 +128,7 @@ class KernelProcess(Process):
     def __init__(
         self,
         kernel_id: str,
+        info: dict,
         provider_path: str,
         provider_host: str,
         provider_port: int,
@@ -77,6 +138,7 @@ class KernelProcess(Process):
         super(KernelProcess, self).__init__()
 
         self.kernel_id = kernel_id
+        self.info = info
         self._provider_path = provider_path
         self._provider_host = provider_host
         self._provider_port = provider_port
@@ -103,7 +165,6 @@ class KernelProcess(Process):
         app = IPKernelApp.instance()
         app.ip = self._provider_host
         app.user_ns = {
-            "kernel_id": self.kernel_id,
             "_ROOT_PATH": server.root_path,
             "_SERVER": server,
         }

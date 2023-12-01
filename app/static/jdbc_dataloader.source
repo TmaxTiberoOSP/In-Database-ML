@@ -1,0 +1,86 @@
+#####################
+# DataLoader Source #
+#####################
+
+import io
+
+import numpy as np
+import torch
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
+
+
+class Classification_Dataset(Dataset):
+    def __init__(self, conn, query, transform=None):
+        cursor = conn.cursor()
+        cursor.execute(query)
+        data = cursor.fetchall()
+        self.labels = []
+        self.image_data = []
+        self.transform = transform
+
+        for record in data:
+            label, blob_data = record[0], record[1]
+            image = Image.open(io.BytesIO(bytes(blob_data.getBytes(1, int(blob_data.length())))))
+
+            if self.transform is not None:
+                image = self.transform(image)
+
+            label = torch.tensor(label, dtype=torch.long)
+            image_data = torch.tensor(np.array(image), dtype=torch.float32)
+
+            self.labels.append(label)
+            self.image_data.append(image_data)
+
+        cursor.close()
+        conn.close()
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        label = self.labels[idx]
+        image_data = self.image_data[idx]
+        return image_data, label
+
+
+_SERVER: object
+try:
+    _SERVER.set_train_info(status="init kernel")
+    _SERVER.log("Ready dataloader...Start", stdout=True)
+
+    # preprocessing 예시(차후 proprecssing.py로 뺄 내용)
+    norm_transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ]
+    )
+
+    train_loader = DataLoader(
+        Classification_Dataset(
+            _SERVER.new_db_connection(),
+            "SELECT {DATASET_LABEL_COLUMN_NAME}, {DATASET_DATA_COLUMN_NAME} FROM {DATASET_TABLE_NAME}",
+            norm_transform,
+        ),
+        batch_size=10,
+        shuffle=True,
+        num_workers=4,
+    )
+
+    test_loader = DataLoader(
+        Classification_Dataset(
+            _SERVER.new_db_connection(),
+            "SELECT {TESTSET_LABEL_COLUMN_NAME}, {TESTSET_DATA_COLUMN_NAME} FROM {TESTSET_TABLE_NAME}",
+            norm_transform,
+        ),
+        batch_size=10,
+        shuffle=False,
+        num_workers=4,
+    )
+
+    _SERVER.set_train_info(status="ready dataloader")
+    _SERVER.log("Ready dataloader...Done", stdout=True)
+except Exception as e:
+    print(e)

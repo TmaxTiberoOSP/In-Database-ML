@@ -14,15 +14,17 @@ from kernel.kernel_node import Flow, KernelNode
 
 
 class KernelMaster(KernelNode):
+    providers: Set[bytes]
+    clients: Set[bytes]
     settings: Dict = {
         "limit": 0,
     }
-    providers: Set[bytes] = set()
-    clients: Set[bytes] = set()
 
     def __init__(self, port: int, root_path: str, limit: int) -> None:
         super().__init__(NodeType.Master, port=port, root_path=root_path)
 
+        self.providers = set()
+        self.clients = set()
         self.settings["limit"] = limit
 
         # Provider Events
@@ -72,13 +74,14 @@ class KernelMaster(KernelNode):
             self.providers.add(provider_id)
 
     # Client Events
-    def on_client_request_kernel(self, client_id, _, flow: Flow, **__) -> None:
+    def on_client_request_kernel(self, client_id, body, flow: Flow, **__) -> None:
         if self.providers:
             flow.args = client_id
 
             self.send(
                 MasterMessage.SPWAN_KERNEL,
                 id=self.providers.pop(),
+                json_body=body,
                 flow=flow,
             )
         else:

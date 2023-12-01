@@ -1,0 +1,117 @@
+#####################
+#   Train Source    #
+#####################
+
+import torch
+from torch.autograd import Variable
+from torch.optim import {OPTIMIZER_TYPE}
+from torch.utils.data import DataLoader
+
+
+def testAccuracy(model, test_loader):
+    model.eval()
+    accuracy = 0.0
+    total = 0.0
+
+    with torch.no_grad():
+        for data in test_loader:
+            images, labels = data
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            accuracy += (predicted == labels).sum().item()
+
+    accuracy = 100 * accuracy / total
+    return accuracy
+
+
+def train(
+    model,
+    train_loader,
+    test_loader,
+    loss_fn,
+    optimizer,
+    num_epochs,
+    mini_batches,
+    model_output_path,
+    log,
+):
+    best_accuracy = 0.0
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    log(f"The model will be running on {device}", stdout=True)
+    model.to(device)
+
+    for epoch in range(num_epochs):
+        running_loss = 0.0
+
+        for i, (datas, labels) in enumerate(train_loader, 0):
+            inputs = Variable(datas.to(device))
+            labels = Variable(labels.to(device))
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = loss_fn(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+            if i % mini_batches == (mini_batches - 1):
+                log("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 1000))
+                running_loss = 0.0
+
+        accuracy = testAccuracy(model, test_loader)
+        log(
+            "For epoch",
+            epoch + 1,
+            "the test accuracy over the whole test set is %d %%" % (accuracy),
+            stdout=True,
+        )
+
+        if accuracy > best_accuracy:
+            model_scripted = torch.jit.script(model)
+            model_scripted.save(model_output_path)
+            best_accuracy = accuracy
+
+
+_ROOT_PATH: str
+try:
+    _ROOT_PATH
+except NameError:
+    _ROOT_PATH = "./"
+
+{MODEL_CLASS}: torch.nn.Module
+train_loader: DataLoader
+test_loader: DataLoader
+_SERVER: object
+try:
+    _SERVER.set_train_info(status="train start model")
+    _SERVER.log("Train model...Start", stdout=True)
+
+    {MODEL_NAME} = {MODEL_CLASS}()
+    {LOSS_FN_NAME} = torch.nn.{LOSS_FN_TYPE}({LOSS_FN_PARAMS})
+    {OPTIMIZER_NAME} = {OPTIMIZER_TYPE}({OPTIMIZER_PARAMS})
+
+    train(
+        {MODEL_NAME},
+        train_loader,
+        test_loader,
+        {LOSS_FN_NAME},
+        {OPTIMIZER_NAME},
+        {NUM_EPOCHS},
+        {MINI_BATCHES},
+        f"{_ROOT_PATH}/{OUTPUT_NAME}",
+        _SERVER.log,
+    )
+
+    _SERVER.log("Train model...Done", stdout=True)
+
+    _SERVER.set_train_info(status="serving trained model")
+    _SERVER.log("Serving trained model...Start", stdout=True)
+
+    await _SERVER.send_model_to_connect(f"{_ROOT_PATH}/{OUTPUT_NAME}", "{OUTPUT_NAME}")
+
+    _SERVER.log("Serving trained model...Done", stdout=True)
+
+except Exception as e:
+    print(e)

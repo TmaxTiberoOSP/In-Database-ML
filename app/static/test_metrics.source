@@ -1,0 +1,138 @@
+import io
+
+import numpy as np
+import torch
+from PIL import Image
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
+
+_ROOT_PATH: str
+try:
+    _ROOT_PATH
+except NameError:
+    _ROOT_PATH = "./"
+
+
+def class_wise_accuracy(confusion_matrix):
+    num_classes = confusion_matrix.shape[0]
+    class_accuracies = np.zeros(num_classes)
+
+    for i in range(num_classes):
+        true_positive = confusion_matrix[i, i]
+        total_instances = np.sum(confusion_matrix[i, :])
+
+        if total_instances > 0:
+            class_accuracies[i] = true_positive / total_instances
+
+    return class_accuracies
+
+
+def test_metrics(model, test_loader):
+    return accuracy, f1, precision, recall, cm, classification_rep, class_accuracies
+
+
+class Classification_Dataset(Dataset):
+    def __init__(self, conn, query, transform=None):
+        cursor = conn.cursor()
+
+        cursor.execute(query)
+        data = cursor.fetchall()
+        self.labels = []
+        self.image_data = []
+        self.transform = transform
+
+        for record in data:
+            label, blob_data = record[0], record[1]
+            image = Image.open(io.BytesIO(bytes(blob_data.getBytes(1, int(blob_data.length())))))
+
+            if self.transform is not None:
+                image = self.transform(image)
+
+            label = torch.tensor(label, dtype=torch.long)
+            image_data = torch.tensor(np.array(image), dtype=torch.float32)
+
+            self.labels.append(label)
+            self.image_data.append(image_data)
+
+        cursor.close()
+        conn.close()
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        label = self.labels[idx]
+        image_data = self.image_data[idx]
+        return image_data, label
+
+
+_SERVER: object
+try:
+    print("Ready dataloader...Start")
+    test_loader = DataLoader(
+        Classification_Dataset(
+            _SERVER.new_db_connection(),
+            "SELECT {TESTSET_LABEL_COLUMN_NAME}, {TESTSET_DATA_COLUMN_NAME} FROM {TESTSET_TABLE_NAME}",
+            transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                ]
+            ),
+        ),
+        batch_size=10,
+        shuffle=False,
+        num_workers=0,
+    )
+    print("Ready dataloader...End")
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"The model will be running on {device}")
+
+    model = torch.jit.load(f"{_ROOT_PATH}/{MODEL_FILENAME}")
+    model.to(device)
+
+    all_labels = []
+    all_preds = []
+    model.eval()
+
+    print("Test model...Start")
+    with torch.no_grad():
+        for datas, labels in test_loader:
+            outputs = model(datas)
+            _, preds = torch.max(outputs, 1)
+
+            all_labels.extend(labels.cpu().numpy())
+            all_preds.extend(preds.cpu().numpy())
+    print("Test model...End")
+
+    accuracy = accuracy_score(all_labels, all_preds) * 100
+    f1 = f1_score(all_labels, all_preds, average="weighted", zero_division=np.nan)
+    precision = precision_score(
+        all_labels, all_preds, average="weighted", zero_division=np.nan
+    )
+    recall = recall_score(
+        all_labels, all_preds, average="weighted", zero_division=np.nan
+    )
+    cm = confusion_matrix(all_labels, all_preds)
+    classification_rep = classification_report(
+        all_labels, all_preds, zero_division=np.nan
+    )
+
+    print("__RESULT__")
+    print("Accuracy: %.2f%%" % accuracy)
+    print("F1-score: %.2f" % f1)
+    print("Precision: %.2f" % precision)
+    print("Recall: %.2f" % recall)
+    print("Confusion Matrix:\n", cm)
+    print("Classification Report:\n", classification_rep)
+except Exception as e:
+    print(e)

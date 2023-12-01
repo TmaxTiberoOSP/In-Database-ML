@@ -7,6 +7,7 @@ import errno
 import signal
 from typing import Dict
 
+from app.config.settings import get
 from kernel.kernel_message import (
     KernelMessage,
     MasterMessage,
@@ -16,17 +17,20 @@ from kernel.kernel_message import (
 from kernel.kernel_node import Flow, KernelNode
 from kernel.kernel_process import KernelProcess
 
+settings = get()
+
 
 class KernelProvider(KernelNode):
     host: str
+    kernels: Dict[str, KernelProcess]
     limit: int = 0
-    kernels: Dict[str, KernelProcess] = {}
 
     def __init__(self, master_address: str, host: str, root_path: str) -> None:
         super().__init__(NodeType.Provider, root_path=root_path)
         self.connect(master_address, to_master=True)
 
         self.host = host
+        self.kernels = {}
 
         # Master Events
         self.listen(MasterMessage.SETUP_PROVIDER, self.on_master_setup)
@@ -55,7 +59,7 @@ class KernelProvider(KernelNode):
     def on_master_setup(self, _, settings, **__) -> None:
         self.limit = settings["limit"]
 
-    def on_master_spwan_kernel(self, *_, flow: Flow) -> None:
+    def on_master_spwan_kernel(self, _, info, flow: Flow) -> None:
         if len(self.kernels) >= self.limit:
             flow.set_cleanup()
 
@@ -70,6 +74,7 @@ class KernelProvider(KernelNode):
 
             kernel = KernelProcess(
                 self._gen_unique_id(self.kernels),
+                info,
                 self.root_path,
                 self.host,
                 self._port,

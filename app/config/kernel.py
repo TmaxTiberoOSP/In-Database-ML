@@ -13,11 +13,11 @@ from tornado import ioloop
 from zmq import DEALER, REQ, SUB
 from zmq.eventloop.zmqstream import ZMQStream
 
-from app.config import settings
+from app.config.settings import DBInfo, get
 from kernel.kernel_message import ClientMessage, MasterMessage, NodeType
 from kernel.kernel_node import Flow, KernelNode
 
-settings = settings.get()
+settings = get()
 
 
 @unique
@@ -144,7 +144,7 @@ class KernelConnection(KernelNode):
             id = msg["parent_header"]["msg_id"]
             if id in self.reply:
                 if type == "stream":
-                    self.reply[id].append(msg["content"]["text"])
+                    self.reply[id].extend(msg["content"]["text"].split("\n")[:-1])
                 elif type == "error":
                     self.reply[id].append("\n".join(msg["content"]["traceback"]))
                 elif type == "execute_reply":
@@ -181,6 +181,9 @@ class KernelConnection(KernelNode):
 
         return reply
 
+    async def send_file(self, *args, **kwargs):
+        await super().send_file(*args, id=self._process_key, **kwargs)
+
 
 class KernelClient(KernelNode):
     kernels: Dict[str, KernelConnection] = {}
@@ -206,7 +209,15 @@ class KernelClient(KernelNode):
     async def create_kernel(self) -> KernelConnection:
         flow = self.new_flow(future=True)
 
-        self.send(ClientMessage.REQ_KERNEL, flow=flow, to_master=True)
+        self.send(
+            ClientMessage.REQ_KERNEL,
+            json_body={
+                "db": settings.get_db_info(),
+                "log": settings.get_log_info(),
+            },
+            flow=flow,
+            to_master=True,
+        )
 
         return await flow.future
 

@@ -5,9 +5,11 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 
 import app.router as router
 from app.config import database, kernel, settings
+from app.config.tibero import get_db_connection
 
 settings = settings.get()
 
@@ -27,7 +29,37 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(router.setting)
+app.include_router(router.model)
 app.include_router(router.kernel)
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        routes=app.routes,
+    )
+
+    db_conn = [*get_db_connection.__annotations__.keys()]
+    db_conn.remove("return")
+
+    def is_with_db_conn(param):
+        return not param["name"] in db_conn
+
+    for api in openapi_schema["paths"].values():
+        for method in api.values():
+            if "parameters" in method:
+                method["parameters"] = [*filter(is_with_db_conn, method["parameters"])]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 if __name__ == "__main__":
     import argparse
