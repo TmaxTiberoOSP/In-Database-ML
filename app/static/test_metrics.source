@@ -95,19 +95,19 @@ try:
     print("Ready dataloader...End")
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"The model will be running on {device}")
+
     model = torch.jit.load(f"{_ROOT_PATH}/{MODEL_FILENAME}")
-    model.eval()
+    model.to(device)
 
     all_labels = []
     all_preds = []
+    model.eval()
 
     print("Test model...Start")
     with torch.no_grad():
         for datas, labels in test_loader:
-            inputs = datas.to(device)
-            labels = labels.to(device)
-
-            outputs = model(inputs)
+            outputs = model(datas)
             _, preds = torch.max(outputs, 1)
 
             all_labels.extend(labels.cpu().numpy())
@@ -127,7 +127,7 @@ try:
         all_labels, all_preds, zero_division=np.nan
     )
 
-    print("__RESULT__", end="")
+    print("__RESULT__")
     print("Accuracy: %.2f%%" % accuracy)
     print("F1-score: %.2f" % f1)
     print("Precision: %.2f" % precision)

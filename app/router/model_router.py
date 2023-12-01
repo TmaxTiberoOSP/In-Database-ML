@@ -106,6 +106,7 @@ def inference_image_model(
 async def test_metrics_model(
     model_id: int,
     req: RequestScore,
+    to_json: bool = False,
     db: Connection = Depends(get_db),
     kc: KernelClient = Depends(get_client),
 ):
@@ -129,13 +130,16 @@ async def test_metrics_model(
         "Test model",
     )
 
-    for line in result:
-        if "__RESULT__" in line:
-            return line.split("__RESULT__")[1]
-
     await kernel.stop()
 
-    raise HTTPException(status_code=400)
+    try:
+        result = result[result.index("__RESULT__") + 1 :]
+        if to_json:
+            return result
+        else:
+            return "\n".join(result)
+    except:
+        raise HTTPException(status_code=400)
 
 
 def generate_source_response(source: str, filename: str) -> StreamingResponse:
