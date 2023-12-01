@@ -56,7 +56,7 @@ class Flow(object):
             self.future = asyncio.get_running_loop().create_future()
         if "callback" in kwargs:
             self.callback = kwargs.pop("callback")
-        self.kwarg = kwargs
+        self.kwargs = kwargs
 
         self._flag_cleanup = False
 
@@ -250,7 +250,7 @@ class KernelNode(object):
         remote_path: str,
         to_master: bool = False,
         id: bytes | None = None,
-    ) -> None:
+    ) -> str:
         flow = self.new_flow(future=True)
         flow.args = ServingFile(source_path)
 
@@ -262,7 +262,7 @@ class KernelNode(object):
             flow=flow,
         )
 
-        await flow.future
+        return await flow.future
 
     def run(self, io_stop: bool = True) -> None:
         def signal_handler(*_):
@@ -351,10 +351,16 @@ class KernelNode(object):
     def _on_req_file_serving(self, id, target_path, flow: Flow):
         flow.args = ServingFile(f"{self.root_path}/{target_path}", is_write=True)
 
-        self.send(NodeMessage.RES_FILE_SERVING, id=id, flow=flow)
+        self.send(
+            NodeMessage.RES_FILE_SERVING,
+            id=id,
+            json_body=f"{self.root_path}/{target_path}",
+            flow=flow,
+        )
 
-    def _on_res_file_serving(self, id, _, flow: Flow):
+    def _on_res_file_serving(self, id, remote_path, flow: Flow):
         file: ServingFile = flow.args
+        flow.kwargs["remote_path"] = remote_path
 
         self.send(NodeMessage.STREAM_FILE, id=id, body=file.read(), flow=flow)
 
@@ -374,5 +380,5 @@ class KernelNode(object):
         self.send(NodeMessage.STREAM_FILE, id=id, body=body, flow=flow)
 
         if not body:
-            flow.future.set_result(True)
+            flow.future.set_result(flow.kwargs["remote_path"])
             self.del_flow(flow)

@@ -61,9 +61,9 @@ class KernelProcessServer(KernelNode):
         self.send(*args, id=self._connection_id, **kwargs)
 
     def send_file_to_connect(self, source_path: str, remote_path: str) -> None:
-        asyncio.ensure_future(
+        asyncio.create_task(
             self.send_file(source_path, remote_path, id=self._connection_id)
-        )
+        ).add_done_callback(lambda task: self.set_train_info(path=task.result()))
 
     def new_db_connection(self) -> jaydebeapi.Connection:
         if "db" in self._process.info:
@@ -95,7 +95,7 @@ class KernelProcessServer(KernelNode):
         path: str | None = None,
     ) -> None:
         if self._conn and self.train_id is not None:
-            data = []
+            data = [f"KERNEL = '{self._process.kernel_id}'"]
             if status:
                 data.append(f"STATUS = '{status}'")
             if path:
@@ -161,7 +161,6 @@ class KernelProcess(Process):
         app = IPKernelApp.instance()
         app.ip = self._provider_host
         app.user_ns = {
-            "kernel_id": self.kernel_id,
             "_ROOT_PATH": server.root_path,
             "_SERVER": server,
         }
