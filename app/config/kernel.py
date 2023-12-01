@@ -144,7 +144,7 @@ class KernelConnection(KernelNode):
             id = msg["parent_header"]["msg_id"]
             if id in self.reply:
                 if type == "stream":
-                    self.reply[id].append(msg["content"]["text"])
+                    self.reply[id].extend(msg["content"]["text"].split("\n")[:-1])
                 elif type == "error":
                     self.reply[id].append("\n".join(msg["content"]["traceback"]))
                 elif type == "execute_reply":

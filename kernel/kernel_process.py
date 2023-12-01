@@ -61,10 +61,13 @@ class KernelProcessServer(KernelNode):
     def send_to_connect(self, *args, **kwargs) -> None:
         self.send(*args, id=self._connection_id, **kwargs)
 
-    def send_file_to_connect(self, source_path: str, remote_path: str) -> None:
-        asyncio.create_task(
-            self.send_file(source_path, remote_path, id=self._connection_id)
-        ).add_done_callback(lambda task: self.set_train_info(path=task.result()))
+    async def send_model_to_connect(
+        self, source_path: str, model_filename: str
+    ) -> None:
+        remote_path = await self.send_file(
+            source_path, model_filename, id=self._connection_id
+        )
+        self.set_train_info(status="done", path=remote_path)
 
     def new_db_connection(self) -> jaydebeapi.Connection:
         if "db" in self._process.info:
@@ -105,7 +108,7 @@ class KernelProcessServer(KernelNode):
             if data:
                 cursor = self._conn.cursor()
                 cursor.execute(
-                    f"UPDATE ML_TRAIN SET {','.join(data)} WHERE ID = {self.train_id}"
+                    f"UPDATE ML_TRAIN SET {', '.join(data)} WHERE ID = {self.train_id}"
                 )
                 self._conn.commit()
                 cursor.close()

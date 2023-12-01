@@ -16,11 +16,10 @@ from app.model.model import (
     Model,
     RequestInferenceImage,
     RequestScore,
-    RequestTrain,
     get_inference_image_from_db,
     get_model_from_db,
-    get_train_info_from_db,
 )
+from app.model.train import RequestTrain, Train, get_train_by_id, new_train
 from app.util.source_generator import (
     get_dataloader_source,
     get_network_source,
@@ -36,8 +35,10 @@ def get_model(model_id: int, db: Connection = Depends(get_db)):
     return get_model_from_db(model_id, db)
 
 
-async def train_task(model: Model, req: RequestTrain, kernel: KernelConnection):
-    await kernel.execute(f"_SERVER.train_id = {req.train_id}", "Step 1: set train id")
+async def train_task(
+    req: RequestTrain, model: Model, train: Train, kernel: KernelConnection
+):
+    await kernel.execute(f"_SERVER.train_id = {train.id}", "Step 1: set train id")
     await kernel.execute(
         get_dataloader_source(
             req.dataset.table_name,
@@ -54,7 +55,7 @@ async def train_task(model: Model, req: RequestTrain, kernel: KernelConnection):
         "Step 3: Define network",
     )
     await kernel.execute(
-        get_train_source(model, req.train_id, req.num_epochs, req.mini_batches),
+        get_train_source(model, train.id, req.num_epochs, req.mini_batches),
         "Step 4: Train model",
     )
     await kernel.stop()
@@ -69,12 +70,14 @@ async def train_model(
     kc: KernelClient = Depends(get_client),
 ):
     model = get_model_from_db(model_id, db)
-
     kernel = await kc.create_kernel()
     if not kernel:
         raise HTTPException(status_code=503, detail="no providers available")
+    train = new_train(model_id, db)
 
-    background_tasks.add_task(train_task, model, req, kernel)
+    background_tasks.add_task(train_task, req, model, train, kernel)
+
+    return train.id
 
 
 @router.post("/{model_id}/inference-image")
@@ -85,7 +88,7 @@ def inference_image_model(
     db: Connection = Depends(get_db),
 ):
     get_model_from_db(model_id, db)
-    train = get_train_info_from_db(req.train_id, db)
+    train = get_train_by_id(req.train_id, db)
     input = get_inference_image_from_db(req, db)
 
     with torch.no_grad():
@@ -107,7 +110,7 @@ async def test_metrics_model(
     kc: KernelClient = Depends(get_client),
 ):
     get_model_from_db(model_id, db)
-    train = get_train_info_from_db(req.train_id, db)
+    train = get_train_by_id(req.train_id, db)
 
     kernel = await kc.create_kernel()
     if not kernel:

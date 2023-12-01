@@ -12,19 +12,7 @@ from PIL import Image
 from pydantic import BaseModel
 from torch import Tensor
 
-
-class RequestTable(BaseModel):
-    table_name: str
-    label_column_name: str
-    data_column_name: str
-
-
-class RequestTrain(BaseModel):
-    train_id: int
-    num_epochs: int
-    mini_batches: int
-    dataset: RequestTable
-    testset: RequestTable
+from app.model import RequestTable
 
 
 class RequestInferenceImage(BaseModel):
@@ -97,17 +85,6 @@ class Model(BaseModel):
         return self.name.lower()
 
 
-class Train(BaseModel):
-    id: int
-    mid: int
-    kernel: str
-    status: str
-    path: str
-
-    def __init__(self, id, mid, kernel, status, path) -> None:
-        super().__init__(id=id, mid=mid, kernel=kernel, status=status, path=path)
-
-
 def get_model_from_db(model_id: int, db: Connection) -> Model:
     try:
         cursor = db.cursor()
@@ -127,23 +104,6 @@ def get_model_from_db(model_id: int, db: Connection) -> Model:
             model.append_layer(json_raw)
 
         return model
-    finally:
-        cursor.close()
-
-
-def get_train_info_from_db(train_id: int, db: Connection) -> Train:
-    try:
-        cursor = db.cursor()
-
-        cursor.execute(f"SELECT * FROM ML_TRAIN WHERE ID={train_id}")
-        result = cursor.fetchone()
-
-        if not result:
-            raise HTTPException(status_code=404, detail="train info not found")
-
-        train = Train(*result)
-
-        return train
     finally:
         cursor.close()
 
