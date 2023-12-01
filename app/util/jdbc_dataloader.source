@@ -14,7 +14,6 @@ from torchvision import transforms
 class Classification_Dataset(Dataset):
     def __init__(self, conn, query, transform=None):
         cursor = conn.cursor()
-
         cursor.execute(query)
         data = cursor.fetchall()
         self.labels = []
@@ -23,15 +22,7 @@ class Classification_Dataset(Dataset):
 
         for record in data:
             label, blob_data = record[0], record[1]
-            b_stream = blob_data.getBinaryStream()
-            img_data = io.BytesIO()
-
-            chunk = b_stream.read()
-            while chunk != -1:
-                img_data.write(chunk.to_bytes(1, "little"))
-                chunk = b_stream.read()
-
-            image = Image.open(img_data)
+            image = Image.open(io.BytesIO(bytes(blob_data.getBytes(1, int(blob_data.length())))))
 
             if self.transform is not None:
                 image = self.transform(image)
