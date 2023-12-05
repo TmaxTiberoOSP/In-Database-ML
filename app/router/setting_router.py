@@ -12,7 +12,7 @@ router = APIRouter(prefix="/setting", tags=["Setting"])
 
 
 @router.post("/init-db")
-def get_kernel_list(
+def init_db(
     reset: bool = False,
     db: Connection = Depends(get_db),
 ):
