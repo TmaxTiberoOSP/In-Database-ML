@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # DB
     jdbc_driver: str = "$TB_HOME/client/lib/jar/tibero7-jdbc.jar"
     db_host: str = "127.0.0.1"
-    db_port: int = "8629"
+    db_port: int = 8629
     db_name: str = "tibero"
     db_user: str = "tibero"
     db_passwd: str = "tmax"
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
 
     # Kernel
     kernel_master_host: str = "127.0.0.1"
-    kernel_master_port: int = 8090
+    kernel_master_port: int = 8080
     kernel_root: str = f"{PROJ_PATH}/kernel_root"
 
     model_config = SettingsConfigDict(env_file=".env")
