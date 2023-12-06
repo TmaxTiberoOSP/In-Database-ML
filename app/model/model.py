@@ -12,8 +12,6 @@ from PIL import Image
 from pydantic import BaseModel
 from torch import Tensor
 
-from app.model import RequestTable
-
 
 class RequestInferenceImage(BaseModel):
     train_id: int
@@ -21,11 +19,6 @@ class RequestInferenceImage(BaseModel):
     # TODO: 모델 정보를 바탕으로 width, height 추출하는 방법 리서치
     width: int = 32
     height: int = 32
-
-
-class RequestScore(BaseModel):
-    train_id: int
-    testset: RequestTable
 
 
 def default_str(dict, key, defulat="") -> str:

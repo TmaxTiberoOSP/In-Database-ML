@@ -8,7 +8,11 @@ from fastapi import HTTPException
 from jaydebeapi import Connection
 from pydantic import BaseModel, ConfigDict
 
-from app.model import RequestTable
+
+class RequestTable(BaseModel):
+    table_name: str
+    label_column_name: str
+    data_column_name: str
 
 
 class RequestTrain(BaseModel):
