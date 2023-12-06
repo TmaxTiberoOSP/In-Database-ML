@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # app/model/train.py
 
+from datetime import datetime
+
 from fastapi import HTTPException
 from jaydebeapi import Connection
 from pydantic import BaseModel
@@ -64,5 +66,38 @@ def get_train_by_id(id: int, db: Connection) -> Train:
             raise HTTPException(status_code=404, detail="train info not found")
 
         return Train(*result)
+    finally:
+        cursor.close()
+
+
+class TrainLog(BaseModel):
+    tid: int
+    log: str
+    create_at: datetime
+
+    def __init__(self, tid, log, create_at) -> None:
+        super().__init__(tid=tid, log=log, create_at=create_at)
+
+
+class TrainLogView(BaseModel):
+    log: str
+    create_at: datetime
+
+
+def get_train_log_by_id(train_id: int, db: Connection) -> list[TrainLog]:
+    try:
+        cursor = db.cursor()
+
+        cursor.execute(
+            f"SELECT * FROM ML_TRAIN_LOG WHERE TID = {train_id} ORDER BY CREATEDAT"
+        )
+        result = cursor.fetchall()
+
+        if not result:
+            raise HTTPException(status_code=404, detail="train info not found")
+
+        result = [TrainLog(*row) for row in result]
+
+        return result
     finally:
         cursor.close()

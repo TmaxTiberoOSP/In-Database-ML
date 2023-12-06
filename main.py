@@ -31,6 +31,7 @@ app = FastAPI(
 
 app.include_router(router.setting)
 app.include_router(router.model)
+app.include_router(router.train)
 app.include_router(router.kernel)
 
 
