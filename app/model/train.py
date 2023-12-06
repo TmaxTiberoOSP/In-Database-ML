@@ -6,7 +6,7 @@ from datetime import datetime
 
 from fastapi import HTTPException
 from jaydebeapi import Connection
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.model import RequestTable
 
@@ -27,6 +27,21 @@ class Train(BaseModel):
 
     def __init__(self, id, mid, kernel, status, path) -> None:
         super().__init__(id=id, mid=mid, kernel=kernel, status=status, path=path)
+
+
+class TrainView(BaseModel):
+    train_id: int
+    model_id: int
+    kernel: str
+    status: str
+    path: str
+
+    model_config = ConfigDict(protected_namespaces=())
+
+    def __init__(self, id: int, mid: int, kernel: str, status: str, path: str) -> None:
+        super().__init__(
+            train_id=id, model_id=mid, kernel=kernel, status=status.strip(), path=path
+        )
 
 
 def new_train(mode_id: int, db: Connection) -> Train:
