@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 
 
 def testAccuracy(model, test_loader):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.eval()
     accuracy = 0.0
     total = 0.0
@@ -16,10 +17,11 @@ def testAccuracy(model, test_loader):
     with torch.no_grad():
         for data in test_loader:
             images, labels = data
+            images = images.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
-            accuracy += (predicted == labels).sum().item()
+            accuracy += (predicted.cpu() == labels).sum().item()
 
     accuracy = 100 * accuracy / total
     return accuracy

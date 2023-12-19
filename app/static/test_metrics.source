@@ -109,7 +109,7 @@ try:
         for datas, labels in test_loader:
             outputs = model(datas)
             _, preds = torch.max(outputs, 1)
-
+            datas = datas.to(device)
             all_labels.extend(labels.cpu().numpy())
             all_preds.extend(preds.cpu().numpy())
     print("Test model...End")
