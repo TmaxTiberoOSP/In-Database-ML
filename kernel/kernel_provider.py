@@ -48,12 +48,12 @@ class KernelProvider(KernelNode):
                 raise
 
     def on_disconnect(self, id, _, **__) -> None:
-        for kernel in self.kernels.values():
+        for kernel in list(self.kernels.values()):
             if kernel.id != id:
                 continue
 
             self.kill_kernel(kernel)
-            del self.kernels[kernel.id]
+            del self.kernels[kernel.kernel_id]
 
     # Master Events
     def on_master_setup(self, _, settings, **__) -> None:
