@@ -27,7 +27,7 @@ class Train(BaseModel):
     mid: int
     kernel: str
     status: str
-    path: str
+    path: str | None
 
     def __init__(self, id, mid, kernel, status, path) -> None:
         super().__init__(id=id, mid=mid, kernel=kernel, status=status, path=path)
@@ -44,7 +44,11 @@ class TrainView(BaseModel):
 
     def __init__(self, id: int, mid: int, kernel: str, status: str, path: str) -> None:
         super().__init__(
-            train_id=id, model_id=mid, kernel=kernel, status=status.strip(), path=path
+            train_id=id,
+            model_id=mid,
+            kernel=kernel,
+            status=status.strip(),
+            path=path if path else "",
         )
 
 
