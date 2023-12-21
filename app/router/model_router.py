@@ -4,20 +4,14 @@
 
 from io import StringIO
 
-import torch
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from jaydebeapi import Connection
 
 from app.config.kernel import KernelClient, KernelConnection, get_client
 from app.config.tibero import get_db
-from app.model.model import (
-    Model,
-    RequestInferenceImage,
-    get_inference_image_from_db,
-    get_model_from_db,
-)
-from app.model.train import RequestTrain, Train, get_train_by_id, new_train
+from app.model.model import Model, get_model_from_db
+from app.model.train import RequestTrain, Train, new_train
 from app.util.source_generator import (
     get_dataloader_source,
     get_network_source,
@@ -75,28 +69,6 @@ async def train_model(
     background_tasks.add_task(train_task, req, model, train, kernel)
 
     return train.id
-
-
-@router.post("/{model_id}/inference-image")
-def inference_image_model(
-    model_id: int,
-    req: RequestInferenceImage,
-    to_json: bool = False,
-    db: Connection = Depends(get_db),
-):
-    get_model_from_db(model_id, db)
-    train = get_train_by_id(req.train_id, db)
-    input = get_inference_image_from_db(req, db)
-
-    with torch.no_grad():
-        model = torch.jit.load(train.path)
-        model.eval()
-        output = model(input).numpy()[0].tolist()
-
-        if to_json:
-            return output
-        else:
-            return ",".join(map(str, output))
 
 
 def generate_source_response(source: str, filename: str) -> StreamingResponse:

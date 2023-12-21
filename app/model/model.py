@@ -2,23 +2,11 @@
 # -*- coding: utf-8 -*-
 # app/model/model.py
 
-import io
 import json
 
-import torchvision.transforms as transforms
 from fastapi import HTTPException
 from jaydebeapi import Connection
-from PIL import Image
 from pydantic import BaseModel
-from torch import Tensor
-
-
-class RequestInferenceImage(BaseModel):
-    train_id: int
-    data_id: int
-    # TODO: 모델 정보를 바탕으로 width, height 추출하는 방법 리서치
-    width: int = 32
-    height: int = 32
 
 
 def default_str(dict, key, defulat="") -> str:
@@ -97,28 +85,5 @@ def get_model_from_db(model_id: int, db: Connection) -> Model:
             model.append_layer(json_raw)
 
         return model
-    finally:
-        cursor.close()
-
-
-def get_inference_image_from_db(req: RequestInferenceImage, db: Connection) -> Tensor:
-    try:
-        cursor = db.cursor()
-
-        cursor.execute(f"SELECT DATA FROM ML_INFERENCE WHERE ID={req.data_id}")
-        result = cursor.fetchone()
-
-        if not result:
-            raise HTTPException(
-                status_code=404, detail="inference input data not found"
-            )
-
-        (blob,) = result
-        image = Image.open(io.BytesIO(bytes(blob.getBytes(1, int(blob.length())))))
-        transform = transforms.Compose(
-            [transforms.Resize((req.width, req.height)), transforms.ToTensor()]
-        )
-
-        return transform(image).unsqueeze(0)
     finally:
         cursor.close()

@@ -4,15 +4,18 @@
 
 import os
 
+import torch
 from fastapi import APIRouter, Depends, HTTPException
 from jaydebeapi import Connection
 
 from app.config.kernel import KernelClient, get_client
 from app.config.tibero import get_db
 from app.model.train import (
+    RequestInferenceImage,
     RequestTable,
     TrainLogView,
     TrainView,
+    get_inference_image_from_db,
     get_train_by_id,
     get_train_log_by_id,
 )
@@ -29,6 +32,27 @@ def get_train_info(
     train = get_train_by_id(train_id, db)
 
     return TrainView(**train.model_dump())
+
+
+@router.post("/{train_id}/inference-image")
+def inference_image(
+    train_id: int,
+    req: RequestInferenceImage,
+    to_json: bool = False,
+    db: Connection = Depends(get_db),
+):
+    train = get_train_by_id(train_id, db)
+    input = get_inference_image_from_db(req, db)
+
+    with torch.no_grad():
+        model = torch.jit.load(train.path)
+        model.eval()
+        output = model(input).numpy()[0].tolist()
+
+        if to_json:
+            return output
+        else:
+            return ",".join(map(str, output))
 
 
 @router.post("/{train_id}/test-metrics")
