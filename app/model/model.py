@@ -106,13 +106,14 @@ def get_inference_image_from_db(req: RequestInferenceImage, db: Connection) -> T
         cursor = db.cursor()
 
         cursor.execute(f"SELECT DATA FROM ML_INFERENCE WHERE ID={req.data_id}")
-        (blob,) = cursor.fetchone()
+        result = cursor.fetchone()
 
-        if not blob:
+        if not result:
             raise HTTPException(
                 status_code=404, detail="inference input data not found"
             )
 
+        (blob,) = result
         image = Image.open(io.BytesIO(bytes(blob.getBytes(1, int(blob.length())))))
         transform = transforms.Compose(
             [transforms.Resize((req.width, req.height)), transforms.ToTensor()]
