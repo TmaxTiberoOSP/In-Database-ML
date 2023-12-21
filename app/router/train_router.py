@@ -43,11 +43,16 @@ def inference_image(
 ):
     train = get_train_by_id(train_id, db)
     input = get_inference_image_from_db(req, db)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    model = torch.jit.load(train.path)
+    model.to(device)
+    input = input.to(device)
 
     with torch.no_grad():
-        model = torch.jit.load(train.path)
         model.eval()
-        output = model(input).numpy()[0].tolist()
+        output = model(input).cpu()
+        output = output.numpy()[0].tolist()
 
         if to_json:
             return output
