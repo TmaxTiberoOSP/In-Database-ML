@@ -38,10 +38,16 @@ def get_train_info(
 def inference_image(
     train_id: int,
     req: RequestInferenceImage,
-    to_json: bool = False,
     db: Connection = Depends(get_db),
 ):
     train = get_train_by_id(train_id, db)
+    if not train.path:
+        raise HTTPException(status_code=503, detail="unprepared trained model")
+    elif not os.path.exists(train.path):
+        raise HTTPException(
+            status_code=404, detail="trained model cannot be found in the server"
+        )
+
     input = get_inference_image_from_db(req, db)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -52,12 +58,8 @@ def inference_image(
     with torch.no_grad():
         model.eval()
         output = model(input).cpu()
-        output = output.numpy()[0].tolist()
 
-        if to_json:
-            return output
-        else:
-            return ",".join(map(str, output))
+        return str(torch.argmax(output, dim=1).numpy()[0])
 
 
 @router.post("/{train_id}/test-metrics")

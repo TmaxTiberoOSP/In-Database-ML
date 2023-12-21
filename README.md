@@ -25,8 +25,8 @@ JDBC_DRIVER=/path/to/tibero-jdbc.jar
 DB_HOST=127.0.0.1
 DB_PORT=8629
 DB_NAME=tibero
-DB_USER=tibero
-DB_PASSWD=tmax
+DB_USER=sys
+DB_PASSWD=tibero
 
 # Kernel
 KERNEL_MASTER_HOST=127.0.0.1

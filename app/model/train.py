@@ -97,8 +97,15 @@ def get_train_by_id(id: int, db: Connection) -> Train:
         cursor.close()
 
 
+class RequestData(BaseModel):
+    table_name: str
+    data_column_name: str
+    key_column_name: str
+    key_id: str
+
+
 class RequestInferenceImage(BaseModel):
-    data_id: int
+    data: RequestData
     # TODO: 모델 정보를 바탕으로 width, height 추출하는 방법 리서치
     width: int = 32
     height: int = 32
@@ -108,7 +115,10 @@ def get_inference_image_from_db(req: RequestInferenceImage, db: Connection) -> T
     try:
         cursor = db.cursor()
 
-        cursor.execute(f"SELECT DATA FROM sys.ML_INFERENCE WHERE ID={req.data_id}")
+        cursor.execute(
+            f"SELECT {req.data.data_column_name} FROM {req.data.table_name} \
+              WHERE {req.data.key_column_name}={req.data.key_id}"
+        )
         result = cursor.fetchone()
 
         if not result:
