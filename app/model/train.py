@@ -61,15 +61,15 @@ def new_train(mode_id: int, db: Connection) -> Train:
     try:
         cursor = db.cursor()
 
-        cursor.execute(f"SELECT SEQ_ML_TRAIN.NEXTVAL FROM DUAL")
+        cursor.execute(f"SELECT sys.SEQ_ML_TRAIN.NEXTVAL FROM DUAL")
         (train_id,) = cursor.fetchone()
 
         cursor.execute(
-            "INSERT INTO ML_TRAIN (ID, MID, STATUS) VALUES "
+            "INSERT INTO sys.ML_TRAIN (ID, MID, STATUS) VALUES "
             f"({train_id}, {mode_id}, '{status}');"
         )
 
-        cursor.execute(f"SELECT * FROM ML_TRAIN WHERE ID = {train_id}")
+        cursor.execute(f"SELECT * FROM sys.ML_TRAIN WHERE ID = {train_id}")
         result = cursor.fetchone()
 
         if not result:
@@ -86,7 +86,7 @@ def get_train_by_id(id: int, db: Connection) -> Train:
     try:
         cursor = db.cursor()
 
-        cursor.execute(f"SELECT * FROM ML_TRAIN WHERE ID = {id}")
+        cursor.execute(f"SELECT * FROM sys.ML_TRAIN WHERE ID = {id}")
         result = cursor.fetchone()
 
         if not result:
@@ -108,7 +108,7 @@ def get_inference_image_from_db(req: RequestInferenceImage, db: Connection) -> T
     try:
         cursor = db.cursor()
 
-        cursor.execute(f"SELECT DATA FROM ML_INFERENCE WHERE ID={req.data_id}")
+        cursor.execute(f"SELECT DATA FROM sys.ML_INFERENCE WHERE ID={req.data_id}")
         result = cursor.fetchone()
 
         if not result:
@@ -146,7 +146,7 @@ def get_train_log_by_id(train_id: int, db: Connection) -> list[TrainLog]:
         cursor = db.cursor()
 
         cursor.execute(
-            f"SELECT * FROM ML_TRAIN_LOG WHERE TID = {train_id} ORDER BY CREATEDAT"
+            f"SELECT * FROM sys.ML_TRAIN_LOG WHERE TID = {train_id} ORDER BY CREATEDAT"
         )
         result = cursor.fetchall()
 

@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     meta_db_url: str = f"sqlite:///{PROJ_PATH}/ml.db"
 
     # Log
-    log_table: str = "ML_TRAIN_LOG"
+    log_table: str = "sys.ML_TRAIN_LOG"
     log_id_column: str = "TID"
     log_data_column: str = "LOG"
 

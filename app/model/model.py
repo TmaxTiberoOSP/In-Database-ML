@@ -70,7 +70,7 @@ def get_model_from_db(model_id: int, db: Connection) -> Model:
     try:
         cursor = db.cursor()
 
-        cursor.execute(f"SELECT * FROM ML_MODEL WHERE ID={model_id}")
+        cursor.execute(f"SELECT * FROM sys.ML_MODEL WHERE ID={model_id}")
         result = cursor.fetchone()
 
         if not result:
@@ -78,7 +78,7 @@ def get_model_from_db(model_id: int, db: Connection) -> Model:
 
         model = Model(*result)
 
-        cursor.execute(f"SELECT LAYER FROM ML_MODEL_LAYER WHERE MID={model_id}")
+        cursor.execute(f"SELECT LAYER FROM sys.ML_MODEL_LAYER WHERE MID={model_id}")
         result = cursor.fetchall()
 
         for (json_raw,) in result:

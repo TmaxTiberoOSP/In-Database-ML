@@ -108,7 +108,7 @@ class KernelProcessServer(KernelNode):
             if data:
                 cursor = self._conn.cursor()
                 cursor.execute(
-                    f"UPDATE ML_TRAIN SET {', '.join(data)} WHERE ID = {self.train_id}"
+                    f"UPDATE sys.ML_TRAIN SET {', '.join(data)} WHERE ID = {self.train_id}"
                 )
                 self._conn.commit()
                 cursor.close()
