@@ -5,7 +5,7 @@
 from io import StringIO
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from jaydebeapi import Connection
 
 from app.config.kernel import KernelClient, KernelConnection, get_client
@@ -52,7 +52,7 @@ async def train_task(
     await kernel.stop()
 
 
-@router.post("/{model_id}/train")
+@router.post("/{model_id}/train", response_class=PlainTextResponse)
 async def train_model(
     model_id: int,
     req: RequestTrain,
@@ -68,7 +68,7 @@ async def train_model(
 
     background_tasks.add_task(train_task, req, model, train, kernel)
 
-    return train.id
+    return str(train.id)
 
 
 def generate_source_response(source: str, filename: str) -> StreamingResponse:

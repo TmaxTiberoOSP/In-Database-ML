@@ -6,6 +6,7 @@ import os
 
 import torch
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import PlainTextResponse
 from jaydebeapi import Connection
 
 from app.config.kernel import KernelClient, get_client
@@ -34,7 +35,7 @@ def get_train_info(
     return TrainView(**train.model_dump())
 
 
-@router.post("/{train_id}/inference-image")
+@router.post("/{train_id}/inference-image", response_class=PlainTextResponse)
 def inference_image(
     train_id: int,
     req: RequestInferenceImage,
@@ -96,7 +97,7 @@ async def test_metrics_trained_model(
         if to_json:
             return result
         else:
-            return "\n".join(result)
+            return PlainTextResponse("\n".join(result))
     except:
         raise HTTPException(status_code=400)
 
