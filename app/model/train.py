@@ -7,7 +7,7 @@ from datetime import datetime
 
 import torchvision.transforms as transforms
 from fastapi import HTTPException
-from jaydebeapi import Connection
+from jaydebeapi import Connection, DatabaseError
 from PIL import Image
 from pydantic import BaseModel, ConfigDict
 from torch import Tensor
@@ -78,6 +78,8 @@ def new_train(mode_id: int, db: Connection) -> Train:
         db.commit()
 
         return Train(train_id, mode_id, "", status, "")
+    except DatabaseError as e:
+        raise HTTPException(status_code=404, detail=f"train generate fail: {e}")
     finally:
         cursor.close()
 
@@ -93,6 +95,8 @@ def get_train_by_id(id: int, db: Connection) -> Train:
             raise HTTPException(status_code=404, detail="train info not found")
 
         return Train(*result)
+    except DatabaseError as e:
+        raise HTTPException(status_code=404, detail=f"train info not found: {e}")
     finally:
         cursor.close()
 
@@ -133,6 +137,10 @@ def get_inference_image_from_db(req: RequestInferenceImage, db: Connection) -> T
         )
 
         return transform(image).unsqueeze(0)
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=404, detail=f"inference input data not found: {e}"
+        )
     finally:
         cursor.close()
 
@@ -166,5 +174,7 @@ def get_train_log_by_id(train_id: int, db: Connection) -> list[TrainLog]:
         result = [TrainLog(*row) for row in result]
 
         return result
+    except DatabaseError as e:
+        raise HTTPException(status_code=404, detail=f"train info not found: {e}")
     finally:
         cursor.close()

@@ -5,7 +5,7 @@
 import json
 
 from fastapi import HTTPException
-from jaydebeapi import Connection
+from jaydebeapi import Connection, DatabaseError
 from pydantic import BaseModel
 
 
@@ -85,5 +85,7 @@ def get_model_from_db(model_id: int, db: Connection) -> Model:
             model.append_layer(json_raw)
 
         return model
+    except DatabaseError as e:
+        raise HTTPException(status_code=404, detail=f"model not found: {e}")
     finally:
         cursor.close()
