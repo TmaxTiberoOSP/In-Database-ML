@@ -42,7 +42,7 @@ EOT
 ./provider.sh
 
 # Run a python ML server
-./serrver.sh
+./server.sh
 
 # Run all server
 ./run.sh
