@@ -1,0 +1,29 @@
+{
+    "cSpell.words": [
+        "argmax",
+        "autoflush",
+        "CREATEDAT",
+        "EINTR",
+        "ESRCH",
+        "eventloop",
+        "fastapi",
+        "ioloop",
+        "iopub",
+        "jaydebeapi",
+        "jdbc",
+        "jsonapi",
+        "kernelapp",
+        "killpg",
+        "onupdate",
+        "pydantic",
+        "sessionmaker",
+        "setpgrp",
+        "setproctitle",
+        "SPWAN",
+        "sqlalchemy",
+        "testset",
+        "TESTSET",
+        "tmax",
+        "zmqstream"
+    ]
+}
