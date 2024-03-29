@@ -9,8 +9,8 @@ from jaydebeapi import Connection, DatabaseError
 from pydantic import BaseModel
 
 
-def default_str(dict, key, defulat="") -> str:
-    return dict[key] if key in dict else defulat
+def default_str(dict, key, default="") -> str:
+    return dict[key] if key in dict else default
 
 
 class Component(BaseModel):

@@ -24,7 +24,7 @@ from zmq.utils import jsonapi
 
 from kernel.kernel_message import NodeMessage, NodeType
 
-MASTER_IDENTITY: bytes = b"matser"
+MASTER_IDENTITY: bytes = b"master"
 
 
 class KernelNodeFilter(logging.Filter):
@@ -89,7 +89,7 @@ class ServingFile(object):
 
         return data
 
-    def wrtie(self, data: bytes) -> int:
+    def write(self, data: bytes) -> int:
         if not self.is_write:
             raise  # XXX
 
@@ -368,7 +368,7 @@ class KernelNode(object):
         file: ServingFile = flow.args
 
         if body:
-            file.wrtie(body)
+            file.write(body)
             self.send(NodeMessage.FETCH_FILE, id=id, flow=flow)
         else:
             self.del_flow(flow)

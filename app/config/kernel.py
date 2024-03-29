@@ -13,7 +13,7 @@ from tornado import ioloop
 from zmq import DEALER, REQ, SUB
 from zmq.eventloop.zmqstream import ZMQStream
 
-from app.config.settings import DBInfo, get
+from app.config.settings import get
 from kernel.kernel_message import ClientMessage, MasterMessage, NodeType
 from kernel.kernel_node import Flow, KernelNode
 
@@ -132,7 +132,7 @@ class KernelConnection(KernelNode):
 
     def on_recv_session(self, _, msg_list) -> None:
         _, msg_list = self._session.feed_identities(msg_list)
-        msg = self._session.unserialize(msg_list)
+        msg = self._session.deserialize(msg_list)
         type = msg["msg_type"]
 
         if type == "execute_reply":
