@@ -30,6 +30,8 @@ class NodeMessage(Enum):
     RES_FILE_SERVING = auto()
     STREAM_FILE = auto()
     FETCH_FILE = auto()
+    REQ_CLEAR_WORKSPACE = auto()
+    RES_CLEAR_WORKSPACE = auto()
 
     # Master <-> Provider
     SETUP_PROVIDER = auto()

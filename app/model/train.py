@@ -29,7 +29,7 @@ class RequestTrain(BaseModel):
 class Train(BaseModel):
     id: int
     mid: int
-    kernel: str
+    kernel: str | None
     status: str
     path: str | None
 
@@ -50,7 +50,7 @@ class TrainView(BaseModel):
         super().__init__(
             train_id=id,
             model_id=mid,
-            kernel=kernel,
+            kernel=kernel if kernel else "",
             status=status.strip(),
             path=path if path else "",
         )

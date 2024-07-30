@@ -158,6 +158,8 @@ class KernelNode(object):
         self.listen(NodeMessage.RES_FILE_SERVING, self._on_res_file_serving)
         self.listen(NodeMessage.STREAM_FILE, self._on_stream_file)
         self.listen(NodeMessage.FETCH_FILE, self._on_fetch_file)
+        self.listen(NodeMessage.REQ_CLEAR_WORKSPACE, self._on_req_clear_workspace)
+        self.listen(NodeMessage.RES_CLEAR_WORKSPACE, self._on_res_clear_workspace)
 
         self._connected = {}
         self._flows = {}
@@ -259,6 +261,23 @@ class KernelNode(object):
             id=id,
             to_master=to_master,
             json_body=remote_path,
+            flow=flow,
+        )
+
+        return await flow.future
+
+    async def clear_workspace(
+        self,
+        to_master: bool = False,
+        id: bytes | None = None,
+    ):
+        flow = self.new_flow(future=True)
+
+        self.send(
+            NodeMessage.REQ_CLEAR_WORKSPACE,
+            id=id,
+            to_master=to_master,
+            json_body=None,
             flow=flow,
         )
 
@@ -382,3 +401,22 @@ class KernelNode(object):
         if not body:
             flow.future.set_result(flow.kwargs["remote_path"])
             self.del_flow(flow)
+
+    def _on_req_clear_workspace(self, id, _, flow: Flow):
+        try:
+            walk = list(os.walk(self.root_path))
+            for path, _, _ in walk[::-1]:
+                shutil.rmtree(path)
+        except:
+            pass
+
+        self.send(
+            NodeMessage.RES_CLEAR_WORKSPACE,
+            id=id,
+            json_body=None,
+            flow=flow,
+        )
+
+    def _on_res_clear_workspace(self, id, _, flow: Flow):
+        flow.future.set_result(True)
+        self.del_flow(flow)

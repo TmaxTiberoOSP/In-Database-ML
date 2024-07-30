@@ -160,7 +160,7 @@ class KernelProcess(Process):
         )
 
         IPKernelApp.no_stdout = True
-        IPKernelApp.no_stderr = True
+        IPKernelApp.no_stderr = False
 
         app = IPKernelApp.instance()
         app.ip = self._provider_host

@@ -184,6 +184,9 @@ class KernelConnection(KernelNode):
     async def send_file(self, *args, **kwargs):
         await super().send_file(*args, id=self._process_key, **kwargs)
 
+    async def clear_workspace(self, *args, **kwargs):
+        await super().clear_workspace(*args, id=self._process_key, **kwargs)
+
 
 class KernelClient(KernelNode):
     kernels: Dict[str, KernelConnection] = {}
@@ -206,7 +209,7 @@ class KernelClient(KernelNode):
         flow.future.set_result(kernel)
         self.del_flow(flow)
 
-    async def create_kernel(self) -> KernelConnection:
+    async def create_kernel(self, auto_clear=False) -> KernelConnection:
         flow = self.new_flow(future=True)
 
         self.send(
@@ -214,6 +217,7 @@ class KernelClient(KernelNode):
             json_body={
                 "db": settings.get_db_info(),
                 "log": settings.get_log_info(),
+                "auto_clear": auto_clear,
             },
             flow=flow,
             to_master=True,

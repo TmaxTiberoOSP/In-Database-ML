@@ -90,6 +90,7 @@ async def test_metrics_trained_model(
         "Test model",
     )
 
+    await kernel.clear_workspace()
     await kernel.stop()
 
     try:
