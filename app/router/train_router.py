@@ -72,6 +72,12 @@ async def test_metrics_trained_model(
     kc: KernelClient = Depends(get_client),
 ):
     train = get_train_by_id(train_id, db)
+    if not train.path:
+        raise HTTPException(status_code=503, detail="unprepared trained model")
+    elif not os.path.exists(train.path):
+        raise HTTPException(
+            status_code=404, detail="trained model cannot be found in the server"
+        )
 
     kernel = await kc.create_kernel()
     if not kernel:
@@ -93,6 +99,7 @@ async def test_metrics_trained_model(
     await kernel.clear_workspace()
     await kernel.stop()
 
+    print(result)
     try:
         result = result[result.index("__RESULT__") + 1 :]
         if to_json:
