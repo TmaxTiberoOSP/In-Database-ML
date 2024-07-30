@@ -11,7 +11,7 @@ try:
 
     class {MODEL_CLASS}(nn.Module):
         def __init__(self):
-            super(Network, self).__init__()
+            super().__init__()
 
 {DEFINE_LAYER}
 

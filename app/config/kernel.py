@@ -3,6 +3,7 @@
 # app/config/kernel.py
 
 import asyncio
+import sys
 from enum import Enum, unique
 from typing import Any, Dict, List
 
@@ -146,6 +147,9 @@ class KernelConnection(KernelNode):
                 if type == "stream":
                     self.reply[id].extend(msg["content"]["text"].split("\n")[:-1])
                 elif type == "error":
+                    print(
+                        "\n".join(msg["content"]["traceback"]), file=sys.stdout
+                    )  # XXX: logger
                     self.reply[id].append("\n".join(msg["content"]["traceback"]))
                 elif type == "execute_reply":
                     self.reply_futures[id].set_result(self.reply[id])
